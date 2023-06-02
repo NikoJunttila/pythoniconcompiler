@@ -1,7 +1,9 @@
 import shutil
 import os
 import tkinter as tk
-from tkinter import filedialog, Listbox, Scrollbar, MULTIPLE
+from tkinter import filedialog, Listbox, Scrollbar, MULTIPLE, Label, PhotoImage, Scrollbar
+from PIL import Image, ImageTk
+
 
 def get_svg_files(folder_path, search_term=None):
     svg_files = []
@@ -149,10 +151,22 @@ def update_selected_list():
     for index in selected_files:
         selected_listbox.insert(tk.END, listbox.get(index))
 
+def show_image():
+    selection = listbox.curselection()
+    if selection:
+        index = int(selection[0])
+        image_path = listbox.get(index)
+        image = Image.open(image_path)
+        image.thumbnail((300, 300))  # Resize the image if necessary
+        photo = ImageTk.PhotoImage(image)
+        image_label.config(image=photo)
+        image_label.image = photo  # Store reference to avoid garbage collection
+
+
 # Create the GUI window
 window = tk.Tk()
 window.title("ICON File Copy")
-window.geometry("600x350")
+window.geometry("600x600")
 
 # Create labels and entry fields
 source_label = tk.Label(window, text="Source Folder:")
@@ -240,6 +254,14 @@ theme_label.pack()
 
 # Bind selection event to update selected listbox
 listbox.bind("<<ListboxSelect>>", lambda event: update_selected_list())
+
+
+# Create image label
+show_button = tk.Button(window, text="Show Image", command=show_image)
+show_button.pack()
+
+image_label = Label(window)
+image_label.pack()
 
 # Run the GUI
 window.mainloop()
