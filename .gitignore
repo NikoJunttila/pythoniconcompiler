@@ -2,3 +2,9 @@ installedtools.txt
 /.venv
 testing.py
 workingCopy.py
+copyfiles.spec
+/dist
+/build
+Dockerfile
+temp.pdf
+temp.png

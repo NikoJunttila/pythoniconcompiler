@@ -3,6 +3,8 @@ import os
 import tkinter as tk
 from tkinter import filedialog, Listbox, Scrollbar, MULTIPLE, Label, PhotoImage, Scrollbar, Button, Entry
 from PIL import Image, ImageTk
+from svglib.svglib import svg2rlg
+from reportlab.graphics import renderPDF, renderPM
 
 
 def get_svg_files(folder_path, search_term=None):
@@ -183,14 +185,24 @@ def show_image():
     if selection:
         index = int(selection[len(selection) - 1])
         image_path = listbox.get(index)
-        image = Image.open(image_path)
-        image.thumbnail((300, 300))  # Resize the image if necessary
-        photo = ImageTk.PhotoImage(image)
-        image_label.config(image=photo)
-        image_label.image = photo  # Store reference to avoid garbage collection
-
-        width, height = image.size
-        dimensions_label.config(text=f"Dimensions: {width}x{height}")
+        if image_path.endswith(".svg"):
+            drawing = svg2rlg(image_path)
+            renderPM.drawToFile(drawing, "temp.png", fmt="PNG")
+            image = Image.open('temp.png')
+            image.thumbnail((300, 300))
+            photo = ImageTk.PhotoImage(image)
+            image_label.config(image=photo)
+            image_label.image = photo
+            width, height = image.size
+            dimensions_label.config(text=f"Dimensions: {width}x{height}")
+        else:
+            image = Image.open(image_path)
+            image.thumbnail((300, 300))  # Resize the image if necessary
+            photo = ImageTk.PhotoImage(image)
+            image_label.config(image=photo)
+            image_label.image = photo  # Store reference to avoid garbage collection
+            width, height = image.size
+            dimensions_label.config(text=f"Dimensions: {width}x{height}")
 
 def resize_image():
     # Get the selected image path
