@@ -16,10 +16,13 @@ def get_svg_files(folder_path, search_term=None):
                     svg_files.append(os.path.join(root, file))
     return svg_files
 
+selected_files2 = []
+
 def copy_files():
     source_folder = source_entry.get()
     destination_folder = destination_entry.get()
 
+    global selected_files2
     try:
         # Check if the source folder exists
         if not os.path.exists(source_folder):
@@ -41,13 +44,13 @@ def copy_files():
         else:
             theme_label.config(text="No index.theme file found.")
 
-
-        # Get the selected SVG files
         selected_files = listbox.curselection()
-        svg_files = [listbox.get(index) for index in selected_files]
+        for x in selected_files:
+            selected_files2.append(listbox.get(x))
+
 
        # Copy the selected SVG files to the destination folder
-        for file in svg_files:
+        for file in selected_files2:
             # Get the relative path of the source file
             relative_path = os.path.relpath(file, source_folder)
 
@@ -63,6 +66,7 @@ def copy_files():
         update_added_icons_list(destination_folder)
         listbox.selection_clear(0, tk.END)
         selected_listbox.delete(0, tk.END)  # Empty the selected listbox
+        selected_files2.clear()
 
     except Exception as e:
         result_label.config(text="An error occurred: " + str(e))
@@ -120,12 +124,14 @@ def create_index_theme():
         theme_label.config(text="An error occurred: " + str(e))
 
 
-selected_files = []  # Global list variable to store the selected indices
-
-
 def search_files():
+    global selected_files2
     search_term = search_entry.get()
     source_folder = source_entry.get()
+
+    selected_files = listbox.curselection()
+    for x in selected_files:
+        selected_files2.append(listbox.get(x))
 
     if not os.path.exists(source_folder):
         result_label.config(text=f"Source folder '{source_folder}' does not exist.")
@@ -135,10 +141,6 @@ def search_files():
     listbox.delete(0, tk.END)
     for file in svg_files:
         listbox.insert(tk.END, file)
-
-    # Restore the previous selection
-    for index in selected_files:
-        listbox.select_set(index)
 
 def browse_source_folder():
     folder_path = filedialog.askdirectory()
@@ -159,12 +161,15 @@ def update_svg_list(folder_path):
         listbox.insert(tk.END, file)
 
 def update_selected_list():
-    global selected_files
     selected_files = listbox.curselection()
+    global selected_files2
 
     selected_listbox.delete(0, tk.END)
-    for index in selected_files:
-        selected_listbox.insert(tk.END, listbox.get(index))
+    for x in selected_files:
+        selected_listbox.insert(tk.END, listbox.get(x))
+    if selected_files2:
+        for item in selected_files2:
+           selected_listbox.insert(tk.END, item)
     show_image()
 
 def update_added_icons_list(folder_path):
@@ -189,7 +194,28 @@ def show_image():
             drawing = svg2rlg(image_path)
             renderPM.drawToFile(drawing, "temp.png", fmt="PNG")
             image = Image.open('temp.png')
-            image.thumbnail((300, 300))
+            photo = ImageTk.PhotoImage(image)
+            image_label.config(image=photo)
+            image_label.image = photo
+            width, height = image.size
+            dimensions_label.config(text=f"Dimensions: {width}x{height}")
+        else:
+            image = Image.open(image_path)
+            image.thumbnail((300, 300))  # Resize the image if necessary
+            photo = ImageTk.PhotoImage(image)
+            image_label.config(image=photo)
+            image_label.image = photo  # Store reference to avoid garbage collection
+            width, height = image.size
+            dimensions_label.config(text=f"Dimensions: {width}x{height}")
+
+def show_image_added(event):
+    selection = added_icons_listbox.curselection()
+    if selection:
+        image_path = added_icons_listbox.get(selection)
+        if image_path.endswith(".svg"):
+            drawing = svg2rlg(image_path)
+            renderPM.drawToFile(drawing, "temp.png", fmt="PNG")
+            image = Image.open('temp.png')
             photo = ImageTk.PhotoImage(image)
             image_label.config(image=photo)
             image_label.image = photo
@@ -205,20 +231,37 @@ def show_image():
             dimensions_label.config(text=f"Dimensions: {width}x{height}")
 
 def resize_image():
-    # Get the selected image path
-    selection = listbox.curselection()
-    index = int(selection[len(selection) - 1])
-    image_path = listbox.get(index)
+    try:
+        # Get the selected image path
+        selection = listbox.curselection()
+        index = int(selection[len(selection) - 1])
+        image_path = listbox.get(index)
 
-    # Get the desired resolution
-    new_width = int(width_entry.get())
-    new_height = int(height_entry.get())
+        # Get the desired resolution
+        new_width = int(width_entry.get())
+        new_height = int(height_entry.get())
 
-    # Open a file dialog to select a save location for the resized image
-    output_path = filedialog.asksaveasfilename(defaultextension=".jpg", filetypes=(("JPEG File", "*.jpg"), ("PNG File", "*.png"), ("All Files", "*.*")))
-    # Change the resolution of the image and save the resized image
-    change_resolution(image_path, new_width, new_height, output_path)
-    result_label.config(text="Image Resized and Saved!")
+        # Open a file dialog to select a save location for the resized image
+        output_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=(("PNG File", "*.png"), ("All Files", "*.*")))
+        # Change the resolution of the image and save the resized image
+        change_resolution(image_path, new_width, new_height, output_path)
+        result_label.config(text="Image Resized and Saved!")
+    except Exception as e:
+        result_label.config(text="An error occurred: " + str(e))
+
+def resize_image_added():
+    try:
+        selection = added_icons_listbox.curselection()
+        image_path = added_icons_listbox.get(selection)
+
+        new_width = int(width_entry.get())
+        new_height = int(height_entry.get())
+
+        output_path = filedialog.asksaveasfilename(defaultextension=".png", filetypes=(("PNG File", "*.png"), ("All Files", "*.*")))
+        change_resolution(image_path, new_width, new_height, output_path)
+        result_label.config(text="Image Resized and Saved!")
+    except Exception as e:
+        result_label.config(text="An error occurred: " + str(e))
 
 def ignore_click(event):
     return "break"
@@ -285,7 +328,7 @@ listbox_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 listbox_scrollbar = Scrollbar(listbox_frame, orient=tk.VERTICAL)
 listbox_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-listbox = Listbox(listbox_frame, selectmode=MULTIPLE,font=("Helvetica",9))
+listbox = Listbox(listbox_frame, selectmode=MULTIPLE,font=("Helvetica",9),exportselection=0)
 listbox.pack(fill=tk.BOTH, expand=True)
 listbox.config(yscrollcommand=listbox_scrollbar.set)
 listbox_scrollbar.config(command=listbox.yview)
@@ -314,7 +357,7 @@ added_icons_listbox = Listbox(added_icons_frame)
 added_icons_listbox.pack(fill=tk.BOTH, expand=True)
 added_icons_listbox.config(yscrollcommand=added_icons_scrollbar.set)
 added_icons_scrollbar.config(command=added_icons_listbox.yview)
-
+added_icons_listbox.bind("<<ListboxSelect>>",show_image_added)
 
 # Create button to copy files
 copy_button = tk.Button(window, text="Copy Files", command=copy_files)
@@ -330,9 +373,6 @@ theme_label.pack()
 listbox.bind("<<ListboxSelect>>", lambda event: update_selected_list())
 
 
-# Create image label
-#show_button = tk.Button(window, text="Show Image", command=show_image)
-#show_button.pack()
 
 image_label = Label(window)
 image_label.pack()
@@ -352,5 +392,8 @@ height_entry.pack()
 
 resize_button = Button(window, text="Resize Image", command=resize_image)
 resize_button.pack()
+
+resize_button_added = Button(window, text="if in destination", command=resize_image_added)
+resize_button_added.pack()
 
 window.mainloop()
