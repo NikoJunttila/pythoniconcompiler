@@ -266,12 +266,18 @@ def resize_image_added():
 def ignore_click(event):
     return "break"
 
-# Create the GUI window
+def select_all():
+    listbox.select_set(0, tk.END)
+    update_selected_list()
+
+def unselect_all():
+    listbox.selection_clear(0, tk.END)
+    update_selected_list()
+
 window = tk.Tk()
 window.title("ICON File Copy")
 window.geometry("900x900")
 
-# Create labels and entry fields
 source_label = tk.Label(window, text="Source Folder:")
 source_label.pack()
 source_entry = tk.Entry(window, width=40)
@@ -281,6 +287,7 @@ destination_label = tk.Label(window, text="Destination Folder:")
 destination_label.pack()
 destination_entry = tk.Entry(window, width=40)
 destination_entry.pack()
+
 
 
 
@@ -320,6 +327,12 @@ search_entry.pack()
 
 search_button = tk.Button(window, text="Search", command=search_files)
 search_button.pack()
+select_all_button = tk.Button(window, text="select all", command=select_all)
+select_all_button.pack()
+unselect_all_button = tk.Button(window, text="unselect", command=unselect_all)
+unselect_all_button.pack()
+
+window.bind("<Return>", (lambda event: search_files()))
 
 # Create listbox to display SVG files
 listbox_frame = tk.Frame(window)
@@ -328,7 +341,7 @@ listbox_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 listbox_scrollbar = Scrollbar(listbox_frame, orient=tk.VERTICAL)
 listbox_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
-listbox = Listbox(listbox_frame, selectmode=MULTIPLE,font=("Helvetica",9),exportselection=0)
+listbox = Listbox(listbox_frame, selectmode=MULTIPLE,font=("Helvetica",8),exportselection=0)
 listbox.pack(fill=tk.BOTH, expand=True)
 listbox.config(yscrollcommand=listbox_scrollbar.set)
 listbox_scrollbar.config(command=listbox.yview)
