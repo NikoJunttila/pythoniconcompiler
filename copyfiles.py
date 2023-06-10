@@ -18,6 +18,62 @@ def get_svg_files(folder_path, search_term=None):
 
 selected_files2 = []
 
+def push_item():
+    item = entry.get()
+    if item:
+        names_to_match.append(item)
+        update_array()
+
+def update_array():
+    array_label['text'] = ", ".join(names_to_match)
+
+names_to_match = [] 
+ #give icon names above to copy all e.g "akonadi.png","artikulate.png","Charm.png","hotspot.png"
+
+#copy files from arrray in code
+def copyfiles():
+    source_folder = source_entry.get()
+    destination_folder = destination_entry.get()
+    svg_files = get_svg_files(source_folder)   
+
+    try:
+        # Check if the source folder exists
+        if not os.path.exists(source_folder):
+            return
+
+        # Check if the destination folder exists
+        if not os.path.exists(destination_folder):
+            os.makedirs(destination_folder)
+
+        index_theme_file = os.path.join(source_folder, "index.theme")
+        if os.path.isfile(index_theme_file):
+            destination_index_theme_file = os.path.join(destination_folder, "index.theme")
+            if os.path.isfile(destination_index_theme_file):
+                print("theme found")
+            else:
+                shutil.copy(index_theme_file, destination_folder)
+        else:
+            print("not found index.theme")
+
+
+        for file in svg_files:
+            file_name = os.path.basename(file)
+            if file_name in names_to_match:
+            # Get the relative path of the source file
+                relative_path = os.path.relpath(file, source_folder)
+
+            # Create the subfolder structure in the destination folder
+                destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))
+                os.makedirs(destination_subfolder, exist_ok=True)
+
+            # Copy the file to the destination folder
+                destination_path = os.path.join(destination_subfolder, os.path.basename(file))
+                shutil.copy(file, destination_path)
+
+    except Exception:
+            print("doesnt works")
+
+
 def copy_files():
     source_folder = source_entry.get()
     destination_folder = destination_entry.get()
@@ -299,6 +355,16 @@ destination_button = tk.Button(window, text="Browse destination", command=browse
 destination_button.pack()
 
 # index theme
+array_label = tk.Label(window, text="")
+array_label.pack()
+
+# Create and configure the entry widget
+entry = tk.Entry(window)
+entry.pack()
+
+# Create and configure the push button
+push_button = tk.Button(window, text="Push Item", command=push_item)
+push_button.pack()
 
 name_label = tk.Label(window, text="Name:")
 name_label.pack()
@@ -376,6 +442,9 @@ added_icons_listbox.bind("<<ListboxSelect>>",show_image_added)
 copy_button = tk.Button(window, text="Copy Files", command=copy_files)
 copy_button.pack()
 
+copy_button2 = tk.Button(window, text="Copy all from source", command=copyfiles)
+copy_button2.pack()
+
 # Create result label
 result_label = tk.Label(window, text="")
 result_label.pack()
@@ -384,8 +453,6 @@ theme_label.pack()
 
 # Bind selection event to update selected listbox
 listbox.bind("<<ListboxSelect>>", lambda event: update_selected_list())
-
-
 
 image_label = Label(window)
 image_label.pack()
