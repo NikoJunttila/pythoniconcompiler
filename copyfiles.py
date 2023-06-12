@@ -5,7 +5,7 @@ from tkinter import filedialog, Listbox, Scrollbar, MULTIPLE, Label, PhotoImage,
 from PIL import Image, ImageTk
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPDF, renderPM
-
+import glob
 
 def get_svg_files(folder_path, search_term=None):
     svg_files = []
@@ -16,8 +16,18 @@ def get_svg_files(folder_path, search_term=None):
                     svg_files.append(os.path.join(root, file))
     return svg_files
 
-selected_files2 = []
+def get_themes(folder_path, search_term=None):
+    themes = []
+    for root, _, files in os.walk(folder_path):
+        for file in files:
+            if file.endswith(".theme"):
+                if search_term is None or search_term.lower() in file.lower():
+                    themes.append(os.path.join(root, file))
+    return themes
 
+
+selected_files2 = []
+ 
 def push_item():
     item = entry.get()
     if item:
@@ -28,13 +38,13 @@ def update_array():
     array_label['text'] = ", ".join(names_to_match)
 
 names_to_match = [] 
- #give icon names above to copy all e.g "akonadi.png","artikulate.png","Charm.png","hotspot.png"
 
 #copy files from arrray in code
 def copyfiles():
     source_folder = source_entry.get()
     destination_folder = destination_entry.get()
-    svg_files = get_svg_files(source_folder)   
+    svg_files = get_svg_files(source_folder) 
+    index_themes = get_themes(source_folder)  
 
     try:
         # Check if the source folder exists
@@ -45,20 +55,34 @@ def copyfiles():
         if not os.path.exists(destination_folder):
             os.makedirs(destination_folder)
 
-        index_theme_file = os.path.join(source_folder, "index.theme")
-        if os.path.isfile(index_theme_file):
-            destination_index_theme_file = os.path.join(destination_folder, "index.theme")
-            if os.path.isfile(destination_index_theme_file):
-                print("theme found")
-            else:
-                shutil.copy(index_theme_file, destination_folder)
-        else:
-            print("not found index.theme")
+        for file in index_themes:
+            file_name = os.path.basename(file)
+            relative_path = os.path.relpath(file, source_folder)
+
+            destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))
+            os.makedirs(destination_subfolder, exist_ok=True)
+
+            destination_path = os.path.join(destination_subfolder, os.path.basename(file))
+
+    # Check if the destination folder already contains the index.theme file
+            if not os.path.exists(destination_path):
+                shutil.copy(file, destination_path)
+        
+       # index_theme_file = os.path.join(source_folder, "index.theme")
+       # if os.path.isfile(index_theme_file):
+        #    destination_index_theme_file = os.path.join(destination_folder, "index.theme")
+        #    if os.path.isfile(destination_index_theme_file):
+        #        print("theme found")
+        #    else:
+        #        shutil.copy(index_theme_file, destination_folder)
+        #else:
+        #    print("not found index.theme")
 
 
         for file in svg_files:
             file_name = os.path.basename(file)
-            if file_name in names_to_match:
+            split_name = file_name.split(".")[0]
+            if split_name in names_to_match:
             # Get the relative path of the source file
                 relative_path = os.path.relpath(file, source_folder)
 
@@ -69,9 +93,10 @@ def copyfiles():
             # Copy the file to the destination folder
                 destination_path = os.path.join(destination_subfolder, os.path.basename(file))
                 shutil.copy(file, destination_path)
+        update_added_icons_list(destination_folder)
 
-    except Exception:
-            print("doesnt works")
+    except Exception as e:
+        result_label.config(text="An error occurred: " + str(e))
 
 
 def copy_files():
@@ -210,6 +235,13 @@ def browse_destination_folder():
     destination_entry.insert(0, folder_path)
     update_added_icons_list(folder_path)
 
+def browse_source_code_folder():
+    folder_path = filedialog.askdirectory()
+    source_code_entry.delete(0, tk.END)
+    source_code_entry.insert(0, folder_path)
+    find_icons_in_files(folder_path)
+    update_array()
+
 def update_svg_list(folder_path):
     svg_files = get_svg_files(folder_path)
     listbox.delete(0, tk.END)
@@ -330,6 +362,26 @@ def unselect_all():
     listbox.selection_clear(0, tk.END)
     update_selected_list()
 
+def find_icons_in_files(folder_path):
+    icons = []
+    file_paths = glob.glob(folder_path + "/*.cpp") + glob.glob(folder_path + "/*.cc") + glob.glob(folder_path + "/*.cxx") + glob.glob(folder_path + "/*.ui")
+    for file_path in file_paths:
+        with open(file_path, 'r') as file:
+            source_code = file.read()
+            lines = source_code.split('\n')
+            for line in lines:
+                if 'QIcon::fromTheme' in line:
+                    icon_name = line.split('::fromTheme("')[1].split('")')[0]
+                    icons.append(icon_name)
+                if 'iconset theme=' in line:
+                    icon_name = line.split('theme="')[1].split('"')[0]
+                    icons.append(icon_name)
+    for file in icons:
+        names_to_match.append(file)
+        update_array()
+    return icons
+
+
 window = tk.Tk()
 window.title("ICON File Copy")
 window.geometry("900x900")
@@ -344,6 +396,11 @@ destination_label.pack()
 destination_entry = tk.Entry(window, width=40)
 destination_entry.pack()
 
+source_code_label = tk.Label(window, text="Source code Folder:")
+source_code_label.pack()
+source_code_entry = tk.Entry(window, width=40)
+source_code_entry.pack()
+
 
 
 
@@ -353,6 +410,10 @@ source_button.pack()
 
 destination_button = tk.Button(window, text="Browse destination", command=browse_destination_folder)
 destination_button.pack()
+
+source_code_button = tk.Button(window, text="Browse code", command=browse_source_code_folder)
+source_code_button.pack()
+
 
 # index theme
 array_label = tk.Label(window, text="")
@@ -365,6 +426,9 @@ entry.pack()
 # Create and configure the push button
 push_button = tk.Button(window, text="Push Item", command=push_item)
 push_button.pack()
+
+copy_button2 = tk.Button(window, text="Copy all from source", command=copyfiles)
+copy_button2.pack()
 
 name_label = tk.Label(window, text="Name:")
 name_label.pack()
@@ -442,8 +506,6 @@ added_icons_listbox.bind("<<ListboxSelect>>",show_image_added)
 copy_button = tk.Button(window, text="Copy Files", command=copy_files)
 copy_button.pack()
 
-copy_button2 = tk.Button(window, text="Copy all from source", command=copyfiles)
-copy_button2.pack()
 
 # Create result label
 result_label = tk.Label(window, text="")
