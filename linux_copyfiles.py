@@ -6,6 +6,8 @@ from PIL import Image, ImageTk
 from svglib.svglib import svg2rlg
 from reportlab.graphics import renderPDF, renderPM
 import glob
+import subprocess
+
 
 def get_svg_files(folder_path, search_term=None):
     svg_files = []
@@ -68,6 +70,16 @@ def copyfiles():
     # Check if the destination folder already contains the index.theme file
             if not os.path.exists(destination_path):
                 shutil.copy(file, destination_path)
+        
+       # index_theme_file = os.path.join(source_folder, "index.theme")
+       # if os.path.isfile(index_theme_file):
+        #    destination_index_theme_file = os.path.join(destination_folder, "index.theme")
+        #    if os.path.isfile(destination_index_theme_file):
+        #        print("theme found")
+        #    else:
+        #        shutil.copy(index_theme_file, destination_folder)
+        #else:
+        #    print("not found index.theme")
 
 
         for file in svg_files:
@@ -93,7 +105,7 @@ def copyfiles():
 def copy_files():
     source_folder = source_entry.get()
     destination_folder = destination_entry.get()
-    index_themes = get_themes(source_folder) 
+    index_themes = get_themes(source_folder)
     global selected_files2
     try:
         # Check if the source folder exists
@@ -105,18 +117,15 @@ def copy_files():
         if not os.path.exists(destination_folder):
             os.makedirs(destination_folder)
 
-        for file in index_themes:
-            file_name = os.path.basename(file)
-            relative_path = os.path.relpath(file, source_folder)
-
-            destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))
-            os.makedirs(destination_subfolder, exist_ok=True)
-
-            destination_path = os.path.join(destination_subfolder, os.path.basename(file))
-
-    # Check if the destination folder already contains the index.theme file
-            if not os.path.exists(destination_path):
-                theme_label.config(text="index.theme copied successfully.")
+        for file in index_themes:	
+            file_name = os.path.basename(file)	
+            relative_path = os.path.relpath(file, source_folder)	
+            destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))	
+            os.makedirs(destination_subfolder, exist_ok=True)	
+            destination_path = os.path.join(destination_subfolder, os.path.basename(file))	
+    # Check if the destination folder already contains the index.theme file	
+            if not os.path.exists(destination_path):	
+                theme_label.config(text="index.theme copied successfully.")	
                 shutil.copy(file, destination_path)
 
         selected_files = listbox.curselection()
@@ -134,10 +143,10 @@ def copy_files():
             os.makedirs(destination_subfolder, exist_ok=True)
 
             # Copy the file to the destination folder
-            destination_path2 = os.path.join(destination_subfolder, os.path.basename(file))
-            if os.path.exists(destination_path2):
-                print(f"File '{os.path.basename(file)}' already exists in the destination folder.")
-            else:
+            destination_path2 = os.path.join(destination_subfolder, os.path.basename(file))	
+            if os.path.exists(destination_path2):	
+                print(f"File '{os.path.basename(file)}' already exists in the destination folder.")	
+            else:	
                 shutil.copy(file, destination_path2)
 
         result_label.config(text="Files copied successfully.")
@@ -226,19 +235,19 @@ def search_files():
         full_path_arr.append(file)
 
 def browse_source_folder():
-    folder_path = filedialog.askdirectory()
+    folder_path = ask_directory_with_create_new_folder()
     source_entry.delete(0, tk.END)
     source_entry.insert(0, folder_path)
     update_svg_list(folder_path)
 
 def browse_destination_folder():
-    folder_path = filedialog.askdirectory()
+    folder_path = ask_directory_with_create_new_folder()
     destination_entry.delete(0, tk.END)
     destination_entry.insert(0, folder_path)
     update_added_icons_list(folder_path)
 
 def browse_source_code_folder():
-    folder_path = filedialog.askdirectory()
+    folder_path = ask_directory_with_create_new_folder()
     source_code_entry.delete(0, tk.END)
     source_code_entry.insert(0, folder_path)
     find_icons_in_files(folder_path)
@@ -336,7 +345,7 @@ def resize_image():
         # Get the selected image path
         selection = listbox.curselection()
         index = int(selection[len(selection) - 1])
-        image_path = full_path_arr[index]
+        image_path = listbox.get(index)
 
         # Get the desired resolution
         new_width = int(width_entry.get())
@@ -353,8 +362,7 @@ def resize_image():
 def resize_image_added():
     try:
         selection = added_icons_listbox.curselection()
-        index = int(selection[0])
-        image_path = added_icons_arr[index]
+        image_path = added_icons_listbox.get(selection)
 
         new_width = int(width_entry.get())
         new_height = int(height_entry.get())
@@ -402,6 +410,17 @@ def find_icons_in_files(folder_path):
             update_array()
     return icons
 
+def ask_directory_with_create_new_folder():
+    # Run the zenity command to open the folder selection dialog
+    result = subprocess.run(["zenity", "--file-selection", "--directory", "--title=Select Directory"], capture_output=True, text=True)
+
+    if result.returncode == 0:
+        # Extract the selected directory from the command output
+        selected_directory = result.stdout.strip()
+        return selected_directory
+    else:
+        # Return None if the user canceled the dialog
+        return None
 
 window = tk.Tk()
 window.title("ICON File Copy")
