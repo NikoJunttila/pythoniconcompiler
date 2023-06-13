@@ -8,4 +8,5 @@ Give 3 arguments 1. src-code folder, icons src folder, destination folder (creat
 python cmd_arg_copy.py src-code-folder icons-src-folder destination </br>
 or use auto_dest_copy.py that takes 2 arguments src-code folder and icons src folder. then generates icons folder to src-code folder where it copies icons example: </br>
 python auto_dest_copy.py src-code-folder-path icons-src-folder-path </br>
-src code search made for Qt projects and doesnt work if done with `` instead of "" 
+src code search made for Qt projects and doesnt work if done with `` instead of "" </br>
+icon size change doesnt work for svg icons atm 
