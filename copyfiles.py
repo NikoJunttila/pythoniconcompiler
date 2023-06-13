@@ -27,6 +27,7 @@ def get_themes(folder_path, search_term=None):
 
 
 selected_files2 = []
+full_path_arr = []
  
 def push_item():
     item = entry.get()
@@ -127,7 +128,7 @@ def copy_files():
 
         selected_files = listbox.curselection()
         for x in selected_files:
-            selected_files2.append(listbox.get(x))
+            selected_files2.append(full_path_arr[x])
 
 
        # Copy the selected SVG files to the destination folder
@@ -212,16 +213,21 @@ def search_files():
 
     selected_files = listbox.curselection()
     for x in selected_files:
-        selected_files2.append(listbox.get(x))
+        selected_files2.append(full_path_arr[x])
 
     if not os.path.exists(source_folder):
         result_label.config(text=f"Source folder '{source_folder}' does not exist.")
         return
 
+    full_path_arr.clear()
     svg_files = get_svg_files(source_folder, search_term)
     listbox.delete(0, tk.END)
     for file in svg_files:
-        listbox.insert(tk.END, file)
+        file_name = os.path.basename(file)
+        folder_name = os.path.basename(os.path.dirname(file))
+        full = folder_name + "/" + file_name
+        listbox.insert(tk.END, full)
+        full_path_arr.append(file)
 
 def browse_source_folder():
     folder_path = filedialog.askdirectory()
@@ -246,7 +252,11 @@ def update_svg_list(folder_path):
     svg_files = get_svg_files(folder_path)
     listbox.delete(0, tk.END)
     for file in svg_files:
-        listbox.insert(tk.END, file)
+        file_name = os.path.basename(file)
+        folder_name = os.path.basename(os.path.dirname(file))
+        full = folder_name + "/" + file_name
+        listbox.insert(tk.END, full)
+        full_path_arr.append(file)
 
 def update_selected_list():
     selected_files = listbox.curselection()
@@ -254,17 +264,23 @@ def update_selected_list():
 
     selected_listbox.delete(0, tk.END)
     for x in selected_files:
-        selected_listbox.insert(tk.END, listbox.get(x))
+        selected_listbox.insert(tk.END, full_path_arr[x])
     if selected_files2:
         for item in selected_files2:
            selected_listbox.insert(tk.END, item)
     show_image()
 
+added_icons_arr = []
 def update_added_icons_list(folder_path):
     added_icons_listbox.delete(0, tk.END)
     added_icons = get_svg_files(folder_path)
+    added_icons_arr.clear()
     for icon in added_icons:
-        added_icons_listbox.insert(tk.END, icon)
+        file_name = os.path.basename(icon)
+        folder_name = os.path.basename(os.path.dirname(icon))
+        full = folder_name + "/" + file_name
+        added_icons_arr.append(icon)
+        added_icons_listbox.insert(tk.END, full)
 
 def change_resolution(image_path, new_width, new_height, output_path):
     image = Image.open(image_path)
@@ -275,9 +291,10 @@ def change_resolution(image_path, new_width, new_height, output_path):
 
 def show_image():
     selection = listbox.curselection()
+    print(selection)
     if selection:
         index = int(selection[len(selection) - 1])
-        image_path = listbox.get(index)
+        image_path = full_path_arr[index]
         if image_path.endswith(".svg"):
             drawing = svg2rlg(image_path)
             renderPM.drawToFile(drawing, "temp.png", fmt="PNG")
@@ -299,7 +316,8 @@ def show_image():
 def show_image_added(event):
     selection = added_icons_listbox.curselection()
     if selection:
-        image_path = added_icons_listbox.get(selection)
+        index = int(selection[0])
+        image_path = added_icons_arr[index]
         if image_path.endswith(".svg"):
             drawing = svg2rlg(image_path)
             renderPM.drawToFile(drawing, "temp.png", fmt="PNG")
