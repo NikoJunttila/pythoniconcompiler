@@ -1,6 +1,7 @@
 import shutil
 import os
 import glob
+import time
 
 src_code = input("give src code folder \n")
 icon_source = input("Give folder where to look for icons \n")
@@ -29,20 +30,30 @@ def get_themes(folder_path, search_term=None):
 
 def find_icons_in_files(folder_path):
     icons = []
-    file_paths = glob.glob(folder_path + "/*.cpp") + glob.glob(folder_path + "/*.cc") + glob.glob(folder_path + "/*.cxx") + glob.glob(folder_path + "/*.ui")
+    file_paths = glob.glob(os.path.join(folder_path, "**/*.cpp"), recursive=True) + \
+                 glob.glob(os.path.join(folder_path, "**/*.cc"), recursive=True) + \
+                 glob.glob(os.path.join(folder_path, "**/*.cxx"), recursive=True) + \
+                 glob.glob(os.path.join(folder_path, "**/*.ui"), recursive=True)
+    #modify this to search for different files
     for file_path in file_paths:
         with open(file_path, 'r') as file:
             source_code = file.read()
             lines = source_code.split('\n')
+                
             for line in lines:
+                #modify this to look for icons in different format
                 if 'QIcon::fromTheme' in line:
                     icon_name = line.split('::fromTheme("')[1].split('")')[0]
                     icons.append(icon_name)
                 if 'iconset theme=' in line:
                     icon_name = line.split('theme="')[1].split('"')[0]
                     icons.append(icon_name)
+    print("icons found:")
     for file in icons:
-        names_to_match.append(file)
+         if not file in names_to_match:
+            names_to_match.append(file)
+            print(file)
+            time.sleep(100/1000)
     return icons
 
 def copyfiles():
