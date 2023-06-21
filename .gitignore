@@ -9,3 +9,9 @@ Dockerfile
 temp.pdf
 temp.png
 testing.spec
+complete.ui
+layout.ui
+qtdirs.py
+pyqt.py
+output.py
+setup.py
