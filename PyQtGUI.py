@@ -1,6 +1,6 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel , QWidget,QComboBox, QVBoxLayout, QPushButton, QFileDialog, QLineEdit, QListView,QAbstractItemView, QHBoxLayout, QListWidget
-from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem, QKeyEvent,QFont
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView
+from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap
 from PyQt6.QtCore import Qt, QSize
 from pathlib import Path
 import glob
@@ -8,9 +8,24 @@ import os
 import shutil
 from PIL import Image
 
+
 #global variables
 names_to_match = [] 
 check_all_found = []
+
+def get_icon_resolution(file_path):
+    try:
+        if file_path.endswith(".svg"):
+            #tbh idk about this fr fr
+            return "work in progress"
+        else:
+            with Image.open(file_path) as img:
+                width, height = img.size
+                resolution = f"{width}x{height}"
+                return resolution
+    except (IOError, OSError):
+        #print(OSError)
+        return None
 
 def get_svg_files(folder_path, search_term=None):
         svg_files = []
@@ -54,15 +69,8 @@ def get_themes(folder_path, search_term=None):
                 if search_term is None or search_term.lower() in file.lower():
                     themes.append(os.path.join(root, file))
     return themes
-def get_icon_resolution(file_path):
-    try:
-        with Image.open(file_path) as img:
-            width, height = img.size
-            resolution = f"{width}x{height}"
-            return resolution
-    except (IOError, OSError):
-        #print(OSError)
-        return None
+
+
 
 class ListView_Left(QListView):
     def __init__(self, parent=None):
@@ -74,6 +82,8 @@ class ListView_Left(QListView):
         self.setResizeMode(QListView.ResizeMode.Adjust)
         self.setViewMode(QListView.ViewMode.IconMode)
 
+
+
 class ListView_Right(QListView):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -83,6 +93,12 @@ class ListView_Right(QListView):
         self.setIconSize(QSize(50, 50))
         self.setResizeMode(QListView.ResizeMode.Adjust)
         self.setViewMode(QListView.ViewMode.IconMode)
+        #self.clicked.connect(self.on_item_clicked)  # Connect the clicked signal to the slot
+
+    def on_item_clicked(self, index):
+        item = self.m_model.itemFromIndex(index)
+        if item is not None:
+            print("Clicked item data:", item.text())
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -156,12 +172,16 @@ class Ui_MainWindow(object):
         self.src_code_resolution.addItem("")
         self.src_code_resolution.addItem("")
         self.src_code_resolution.addItem("")
+        self.src_code_resolution.addItem("")
         self.src_code_resolution.setObjectName(u"src_code_resolution")
         self.src_code_resolution.setGeometry(QtCore.QRect(360, 110, 81, 22))
         self.label_3 = QtWidgets.QLabel(parent=self.tab_3)
-        self.label_3.setGeometry(QtCore.QRect(30, 320, 100, 20))
+        self.label_3.setGeometry(QtCore.QRect(50, 320, 100, 20))
         self.label_3.setObjectName("label_3")
-        self.listWidget_4 = QtWidgets.QListWidget(parent=self.tab_3)
+        self.select_all = QtWidgets.QPushButton(self.tab_3)
+        self.select_all.setObjectName(u"select_all")
+        self.select_all.setGeometry(QtCore.QRect(210, 40, 75, 24))
+        self.listWidget_4 = ListView_Left(parent=self.tab_3)
         self.listWidget_4.setGeometry(QtCore.QRect(0, 370, 291, 111))
         self.listWidget_4.setObjectName("listWidget_4")
         self.search_text = QtWidgets.QLineEdit(parent=self.tab_3)
@@ -171,23 +191,23 @@ class Ui_MainWindow(object):
         self.search_btn.setGeometry(QtCore.QRect(190, 10, 75, 24))
         self.search_btn.setObjectName("search_btn")
         self.img_name = QtWidgets.QLabel(parent=self.tab_3)
-        self.img_name.setGeometry(QtCore.QRect(390, 220, 49, 16))
+        self.img_name.setGeometry(QtCore.QRect(300, 250, 231, 20))
         self.img_name.setObjectName("img_name")
         self.img_size = QtWidgets.QLabel(parent=self.tab_3)
-        self.img_size.setGeometry(QtCore.QRect(390, 240, 49, 16))
+        self.img_size.setGeometry(QtCore.QRect(370, 320, 181, 20))
         self.img_size.setObjectName("img_size")
         self.copy_selected_btn = QtWidgets.QPushButton(parent=self.tab_3)
         self.copy_selected_btn.setGeometry(QtCore.QRect(350, 370, 141, 81))
         self.copy_selected_btn.setObjectName("copy_selected_btn")
         self.listWidget_5 = ListView_Right(parent=self.tab_3)
-        self.listWidget_5.setGeometry(QtCore.QRect(550, 40, 256, 441))
+        self.listWidget_5.setGeometry(QtCore.QRect(570, 40, 256, 441))
         self.listWidget_5.setObjectName("listWidget_5")
         self.listWidget_5.setFont(font)
         self.label_6 = QtWidgets.QLabel(parent=self.tab_3)
         self.label_6.setGeometry(QtCore.QRect(580, 10, 261, 20))
         self.label_6.setObjectName("label_6")
         self.image_loader = QtWidgets.QLabel(parent=self.tab_3)
-        self.image_loader.setGeometry(QtCore.QRect(380, 120, 49, 16))
+        self.image_loader.setGeometry(QtCore.QRect(300, 10, 231, 231))
         self.image_loader.setObjectName("image_loader")
         self.label_8 = QtWidgets.QLabel(parent=self.tab_3)
         self.label_8.setGeometry(QtCore.QRect(80, 350, 110, 16))
@@ -196,6 +216,9 @@ class Ui_MainWindow(object):
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
         self.src_code_2.addTab(self.tab_2, "")
+        self.clear_selected_btn = QtWidgets.QPushButton(self.tab_3)
+        self.clear_selected_btn.setObjectName(u"clear_selected_btn")
+        self.clear_selected_btn.setGeometry(QtCore.QRect(160, 345, 75, 24))
         self.icons_folder = QtWidgets.QLineEdit(parent=self.centralwidget)
         self.icons_folder.setGeometry(QtCore.QRect(10, 20, 201, 22))
         self.icons_folder.setObjectName("icons_folder")
@@ -219,6 +242,7 @@ class Ui_MainWindow(object):
         self.copy_resolution.addItem("")
         self.copy_resolution.addItem("")
         self.copy_resolution.addItem("")
+        self.copy_resolution.addItem("")
         self.copy_resolution.setObjectName(u"copy_resolution")
         self.copy_resolution.setGeometry(QtCore.QRect(0, 40, 81, 21))
         MainWindow.setCentralWidget(self.centralwidget)
@@ -229,7 +253,7 @@ class Ui_MainWindow(object):
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
-        
+
         #connect stuff
         self.src_code_search.clicked.connect(self.choose_src_code_directory)
         self.src_code_add_btn.clicked.connect(self.add_name)
@@ -239,11 +263,57 @@ class Ui_MainWindow(object):
         self.copy_src_code.clicked.connect(self.copyfiles)
         self.search_btn.clicked.connect(self.loadIcons)
         self.copy_resolution.currentIndexChanged.connect(self.loadIcons)
-
+        self.listWidget_3.clicked.connect(self.on_item_clicked_main)
+        self.listWidget_4.clicked.connect(self.delete_item)
+        self.clear_selected_btn.clicked.connect(self.clear_selected)
+        self.select_all.clicked.connect(self.select_all_func)
+        
         self.retranslateUi(MainWindow)
         self.src_code_2.setCurrentIndex(1)
         self.comboBox.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        #self.search_text.keyPressEvent = self.keyPressEvent
+
+    #def keyPressEvent(self, event):
+       # if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
+       #     self.search_btn.click()
+
+    def on_item_clicked_main(self, index):
+        try:
+            item = self.listWidget_3.m_model.itemFromIndex(index)
+            data = item.data()
+            file_name = os.path.basename(data)
+            pixmap = QPixmap(data)
+            self.image_loader.setPixmap(pixmap)
+            item2 = QStandardItem()
+            item2.setIcon(QIcon(data))
+            item2.setData(data)
+            self.listWidget_4.m_model.appendRow(item2)
+            icon_resolution = get_icon_resolution(data)
+            self.img_size.setText(icon_resolution)
+            self.img_name.setText(file_name)
+        except Exception as e:
+            print("An error occurred: " + str(e))
+
+    def clear_selected(self):
+        self.listWidget_4.m_model.clear()
+
+    def delete_item(self, item):
+        row = item.row()
+        self.listWidget_4.m_model.removeRow(row)
+
+    def select_all_func(self):
+        for row in range(self.listWidget_3.m_model.rowCount()):
+            index = self.listWidget_3.m_model.index(row,0)
+            try:
+                item = self.listWidget_3.m_model.itemFromIndex(index)
+                data = item.data()
+                item2 = QStandardItem()
+                item2.setData(data)
+                item2.setIcon(QIcon(data))
+                self.listWidget_4.m_model.appendRow(item2)
+            except Exception as e:
+                print("An error occurred: " + str(e))
 
     def loadIcons_dest(self, path):
         icons = get_svg_files(path)
@@ -290,9 +360,10 @@ class Ui_MainWindow(object):
                     if loop_count >= number:
                         break
                     icon_resolution = get_icon_resolution(icon)
-                    if icon_resolution == resolution_check:
+                    if icon_resolution == resolution_check or icon_resolution == "work in progress" :
                         item = QStandardItem()
                         item.setIcon(QIcon(icon))
+                        item.setData(icon)
                         file_name = os.path.basename(icon)
                         split_name = file_name.split(".")[0]
                         item.setText(split_name)
@@ -304,6 +375,7 @@ class Ui_MainWindow(object):
                         break
                     item = QStandardItem()
                     item.setIcon(QIcon(icon))
+                    item.setData(icon)
                     file_name = os.path.basename(icon)
                     split_name = file_name.split(".")[0]
                     item.setText(split_name)
@@ -383,7 +455,7 @@ class Ui_MainWindow(object):
                     relative_path = os.path.relpath(file, source_folder)
                     icon_resolution = get_icon_resolution(file)
                     if resolution_check:
-                        if icon_resolution == resolution_check:
+                        if icon_resolution == resolution_check or icon_resolution == "work in progress":
                             destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))
                             os.makedirs(destination_subfolder, exist_ok=True)
                             destination_path = os.path.join(destination_subfolder, os.path.basename(file))
@@ -429,36 +501,40 @@ class Ui_MainWindow(object):
         self.comboBox.setItemText(5, _translate("MainWindow", "500"))
         self.comboBox.setItemText(6, _translate("MainWindow", "1000"))
         self.src_code_resolution.setItemText(0,  _translate("MainWindow", u"None", None))
-        self.src_code_resolution.setItemText(1,  _translate("MainWindow", u"12x12", None))
-        self.src_code_resolution.setItemText(2,  _translate("MainWindow", u"16x16", None))
-        self.src_code_resolution.setItemText(3,  _translate("MainWindow", u"22x22", None))
-        self.src_code_resolution.setItemText(4,  _translate("MainWindow", u"24x24", None))
-        self.src_code_resolution.setItemText(5,  _translate("MainWindow", u"32x32", None))
-        self.src_code_resolution.setItemText(6,  _translate("MainWindow", u"48x48", None))
-        self.src_code_resolution.setItemText(7,  _translate("MainWindow", u"64x64", None))
-        self.src_code_resolution.setItemText(8,  _translate("MainWindow", u"128x128", None))
-        self.src_code_resolution.setItemText(9,  _translate("MainWindow", u"256x256", None))
+        self.src_code_resolution.setItemText(1,  _translate("MainWindow", u"8x8", None))
+        self.src_code_resolution.setItemText(2,  _translate("MainWindow", u"12x12", None))
+        self.src_code_resolution.setItemText(3,  _translate("MainWindow", u"16x16", None))
+        self.src_code_resolution.setItemText(4,  _translate("MainWindow", u"22x22", None))
+        self.src_code_resolution.setItemText(5,  _translate("MainWindow", u"24x24", None))
+        self.src_code_resolution.setItemText(6,  _translate("MainWindow", u"32x32", None))
+        self.src_code_resolution.setItemText(7,  _translate("MainWindow", u"48x48", None))
+        self.src_code_resolution.setItemText(8,  _translate("MainWindow", u"64x64", None))
+        self.src_code_resolution.setItemText(9,  _translate("MainWindow", u"128x128", None))
+        self.src_code_resolution.setItemText(10,  _translate("MainWindow", u"256x256", None))
         self.label_3.setText(_translate("MainWindow", "Icons loaded"))
         self.search_btn.setText(_translate("MainWindow", "Search"))
-        self.img_name.setText(_translate("MainWindow", "\"Name\""))
-        self.img_size.setText(_translate("MainWindow", "\"Size\""))
+        self.img_name.setText(_translate("MainWindow", ""))
+        self.img_size.setText(_translate("MainWindow", ""))
         self.copy_selected_btn.setText(_translate("MainWindow", "Copy selected"))
         self.label_6.setText(_translate("MainWindow", "Icons in destination folder"))
-        self.image_loader.setText(_translate("MainWindow", "\"Img\""))
-        self.label_8.setText(_translate("MainWindow", "selected icons"))
+        self.image_loader.setText(_translate("MainWindow", ""))
+        self.label_8.setText(_translate("MainWindow", "selected icons:"))
+        self.select_all.setText(_translate("MainWindow", u"Select all"))
+        self.clear_selected_btn.setText(_translate("MainWindow", u"Clear"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_3), _translate("MainWindow", "copy"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_2), _translate("MainWindow", "theme gen"))
         self.icons_folder_btn.setText(_translate("MainWindow", "Icons folder"))
         self.copy_resolution.setItemText(0, _translate("MainWindow", u"None", None))
-        self.copy_resolution.setItemText(1, _translate("MainWindow", u"12x12", None))
-        self.copy_resolution.setItemText(2, _translate("MainWindow", u"16x16", None))
-        self.copy_resolution.setItemText(3, _translate("MainWindow", u"22x22", None))
-        self.copy_resolution.setItemText(4, _translate("MainWindow", u"24x24", None))
-        self.copy_resolution.setItemText(5, _translate("MainWindow", u"32x32", None))
-        self.copy_resolution.setItemText(6, _translate("MainWindow", u"48x48", None))
-        self.copy_resolution.setItemText(7, _translate("MainWindow", u"64x64", None))
-        self.copy_resolution.setItemText(8, _translate("MainWindow", u"128x128", None))
-        self.copy_resolution.setItemText(9, _translate("MainWindow", u"256x256", None))
+        self.copy_resolution.setItemText(1, _translate("MainWindow", u"8x8", None))
+        self.copy_resolution.setItemText(2, _translate("MainWindow", u"12x12", None))
+        self.copy_resolution.setItemText(3, _translate("MainWindow", u"16x16", None))
+        self.copy_resolution.setItemText(4, _translate("MainWindow", u"22x22", None))
+        self.copy_resolution.setItemText(5, _translate("MainWindow", u"24x24", None))
+        self.copy_resolution.setItemText(6, _translate("MainWindow", u"32x32", None))
+        self.copy_resolution.setItemText(7, _translate("MainWindow", u"48x48", None))
+        self.copy_resolution.setItemText(8, _translate("MainWindow", u"64x64", None))
+        self.copy_resolution.setItemText(9, _translate("MainWindow", u"128x128", None))
+        self.copy_resolution.setItemText(10, _translate("MainWindow", u"256x256", None))
         self.src_reso_label.setText(_translate("MainWindow", u"Limit icons size"))
         self.destination_folder_btn.setText(_translate("MainWindow", "Destination"))
 
