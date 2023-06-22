@@ -1,7 +1,8 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView,QMessageBox
 from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap
 from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtSvg import QSvgRenderer
 from pathlib import Path
 import glob
 import os
@@ -16,8 +17,14 @@ check_all_found = []
 def get_icon_resolution(file_path):
     try:
         if file_path.endswith(".svg"):
-            #tbh idk about this fr fr
-            return "work in progress"
+            renderer = QSvgRenderer()
+            if renderer.load(file_path):
+                # Get the default size of the SVG file
+                default_size = renderer.defaultSize()
+                resolution = f"{default_size.width()}x{default_size.height()}"
+                return resolution
+            else:
+                return "work in progress"
         else:
             with Image.open(file_path) as img:
                 width, height = img.size
@@ -267,6 +274,7 @@ class Ui_MainWindow(object):
         self.listWidget_4.clicked.connect(self.delete_item)
         self.clear_selected_btn.clicked.connect(self.clear_selected)
         self.select_all.clicked.connect(self.select_all_func)
+        self.copy_selected_btn.clicked.connect(self.copy_files)
         
         self.retranslateUi(MainWindow)
         self.src_code_2.setCurrentIndex(1)
@@ -349,7 +357,6 @@ class Ui_MainWindow(object):
             resolution_check = None
         if len(folder_path) > 2:
             if not os.path.exists(folder_path):
-                print("Source folder '{folder_path}' does not exist.")
                 return
             icons = get_svg_files(folder_path, search_term)
             self.listWidget_3.m_model.clear()
@@ -360,7 +367,7 @@ class Ui_MainWindow(object):
                     if loop_count >= number:
                         break
                     icon_resolution = get_icon_resolution(icon)
-                    if icon_resolution == resolution_check or icon_resolution == "work in progress" :
+                    if icon_resolution == resolution_check:
                         item = QStandardItem()
                         item.setIcon(QIcon(icon))
                         item.setData(icon)
@@ -414,8 +421,6 @@ class Ui_MainWindow(object):
             self.listWidget_2.addItem(name)
             self.src_code_add.clear()
 
-
-
     def copyfiles(self):
         source_folder = self.icons_folder.text()
         destination_folder = self.destination_folder.text()
@@ -429,7 +434,10 @@ class Ui_MainWindow(object):
 
         try:
             if not os.path.exists(source_folder):
-                print("invalid icon src path")
+                dlg = QMessageBox()
+                dlg.setWindowTitle("error")
+                dlg.setText("invalid icon src path")
+                dlg.exec()
                 return
 
             if not os.path.exists(destination_folder):
@@ -455,7 +463,7 @@ class Ui_MainWindow(object):
                     relative_path = os.path.relpath(file, source_folder)
                     icon_resolution = get_icon_resolution(file)
                     if resolution_check:
-                        if icon_resolution == resolution_check or icon_resolution == "work in progress":
+                        if icon_resolution == resolution_check:
                             destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))
                             os.makedirs(destination_subfolder, exist_ok=True)
                             destination_path = os.path.join(destination_subfolder, os.path.basename(file))
@@ -470,15 +478,74 @@ class Ui_MainWindow(object):
                         if split_name in check_all_found:
                             check_all_found.remove(split_name)
 
-            print("copied succesfully!")
             self.loadIcons_dest(destination_folder)
             self.loadIcons_dest2(destination_folder)
+            
             if len(check_all_found) > 0:
+                arr = []
                 print("files not found:")
                 for file in check_all_found:
-                    print(file)
+                    arr.append(file)
+                combinedString = ','.join(arr)
+                whole_message = "Icons not found: " + combinedString
+                dlg = QMessageBox()
+                dlg.setWindowTitle("error")
+                dlg.setText(whole_message)
+                dlg.exec()
             else:
-                print("found all icons needed!")
+                dlg = QMessageBox()
+                dlg.setWindowTitle("copied icons")
+                dlg.setText("Found all icons needed!")
+                dlg.exec()
+        except Exception as e:
+            print("An error occurred: " + str(e))
+
+    def copy_files(self):
+        source_folder = self.icons_folder.text()
+        destination_folder = self.destination_folder.text()
+        index_themes = get_themes(source_folder) 
+        try:
+            if not os.path.exists(source_folder):
+                dlg = QMessageBox()
+                dlg.setWindowTitle("error")
+                dlg.setText("invalid icon src path")
+                dlg.exec()
+                return
+            if not os.path.exists(destination_folder):
+                os.makedirs(destination_folder)
+
+            for file in index_themes:
+                relative_path = os.path.relpath(file, source_folder)
+                destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))
+                os.makedirs(destination_subfolder, exist_ok=True)
+
+                destination_path = os.path.join(destination_subfolder, os.path.basename(file))
+                if not os.path.exists(destination_path):
+                    shutil.copy(file, destination_path)
+
+            for row in range(self.listWidget_4.m_model.rowCount()):
+                index = self.listWidget_4.m_model.index(row,0)
+                item = self.listWidget_4.m_model.itemFromIndex(index)
+                data = item.data()
+                # Get the relative path of the source file
+                relative_path = os.path.relpath(data, source_folder)
+                destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))
+                os.makedirs(destination_subfolder, exist_ok=True)
+                destination_path2 = os.path.join(destination_subfolder, os.path.basename(data))
+                if os.path.exists(destination_path2):
+                    print(f"File '{os.path.basename(data)}' already exists in the destination folder.")
+                else:
+                    shutil.copy(data, destination_path2)
+            self.listWidget_4.m_model.clear()
+            self.loadIcons_dest(destination_folder)
+            self.loadIcons_dest2(destination_folder)
+            dlg = QMessageBox(self)
+            dlg.setWindowTitle("copied icons!")
+            dlg.setText("Succesfully copied icons!")
+            dlg.exec()
+           # button = dlg.exec()
+           # if button == QMessageBox.StandardButton.Ok:
+           #     print("OK!")
         except Exception as e:
             print("An error occurred: " + str(e))
 
