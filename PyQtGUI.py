@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView,QMessageBox
-from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView,QMessageBox, QWidget, QLineEdit, QVBoxLayout
+from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QMovie
+from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool
 from PyQt6.QtSvg import QSvgRenderer
 from pathlib import Path
 import glob
@@ -77,6 +77,50 @@ def get_themes(folder_path, search_term=None):
                     themes.append(os.path.join(root, file))
     return themes
 
+class LoadIconsWorker(QRunnable):
+    def __init__(self, folder_path, search_term, resolution_check, number, ui):
+        super().__init__()
+        self.folder_path = folder_path
+        self.search_term = search_term
+        self.resolution_check = resolution_check
+        self.number = number
+        self.ui = ui
+
+    @pyqtSlot()
+    def run(self):
+        self.ui.showLoadingSpinner(True)
+
+        icons = get_svg_files(self.folder_path, self.search_term)
+        self.ui.listWidget_3.m_model.clear()
+        loop_count = 0
+        if self.resolution_check:
+            for icon in icons:
+                if loop_count >= self.number:
+                    break
+                icon_resolution = get_icon_resolution(icon)
+                if icon_resolution == self.resolution_check:
+                    item = QStandardItem()
+                    item.setIcon(QIcon(icon))
+                    item.setData(icon)
+                    file_name = os.path.basename(icon)
+                    split_name = file_name.split(".")[0]
+                    item.setText(split_name)
+                    self.ui.listWidget_3.m_model.appendRow(item)
+                    loop_count += 1
+        else:
+            for icon in icons:
+                if loop_count >= self.number:
+                    break
+                item = QStandardItem()
+                item.setIcon(QIcon(icon))
+                item.setData(icon)
+                file_name = os.path.basename(icon)
+                split_name = file_name.split(".")[0]
+                item.setText(split_name)
+                self.ui.listWidget_3.m_model.appendRow(item)
+                loop_count += 1
+
+        self.ui.showLoadingSpinner(False)
 
 
 class ListView_Left(QListView):
@@ -89,7 +133,23 @@ class ListView_Left(QListView):
         self.setResizeMode(QListView.ResizeMode.Adjust)
         self.setViewMode(QListView.ViewMode.IconMode)
 
+class InputFieldWidget(QWidget):
+    def __init__(self, on_enter_pressed=None, parent=None):
+        super().__init__(parent)
+        self.input_field = QLineEdit(self)
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.input_field)
+        self.input_field.installEventFilter(self)
 
+        self.on_enter_pressed = on_enter_pressed
+
+    def eventFilter(self, obj, event):
+        if obj is self.input_field and event.type() == QEvent.Type.KeyPress:
+            key = event.key()
+            if key == Qt.Key.Key_Return or key == Qt.Key.Key_Enter:
+                if self.on_enter_pressed:
+                    self.on_enter_pressed()
+        return super().eventFilter(obj, event)
 
 class ListView_Right(QListView):
     def __init__(self, parent=None):
@@ -156,7 +216,7 @@ class Ui_MainWindow(object):
         self.listWidget_3.setObjectName("listWidget_3")
         self.listWidget_3.setFont(font)
         self.comboBox = QtWidgets.QComboBox(parent=self.tab_3)
-        self.comboBox.setGeometry(QtCore.QRect(130, 320, 69, 22))
+        self.comboBox.setGeometry(QtCore.QRect(150, 320, 69, 22))
         self.comboBox.setObjectName("comboBox")
         self.comboBox.addItem("")
         self.comboBox.addItem("")
@@ -191,25 +251,34 @@ class Ui_MainWindow(object):
         self.listWidget_4 = ListView_Left(parent=self.tab_3)
         self.listWidget_4.setGeometry(QtCore.QRect(0, 370, 291, 111))
         self.listWidget_4.setObjectName("listWidget_4")
-        self.search_text = QtWidgets.QLineEdit(parent=self.tab_3)
-        self.search_text.setGeometry(QtCore.QRect(0, 10, 181, 22))
+        self.search_text = InputFieldWidget(self.loadIcons,parent=self.tab_3)
+        self.search_text.setGeometry(QtCore.QRect(0, 5, 181, 40))
         self.search_text.setObjectName("search_text")
         self.search_btn = QtWidgets.QPushButton(parent=self.tab_3)
-        self.search_btn.setGeometry(QtCore.QRect(190, 10, 75, 24))
+        self.search_btn.setGeometry(QtCore.QRect(190, 12, 75, 24))
         self.search_btn.setObjectName("search_btn")
         self.img_name = QtWidgets.QLabel(parent=self.tab_3)
-        self.img_name.setGeometry(QtCore.QRect(300, 250, 231, 20))
+        self.img_name.setGeometry(QtCore.QRect(300, 260, 231, 20))
         self.img_name.setObjectName("img_name")
+        self.img_name.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         self.img_size = QtWidgets.QLabel(parent=self.tab_3)
-        self.img_size.setGeometry(QtCore.QRect(370, 320, 181, 20))
+        self.img_size.setGeometry(QtCore.QRect(300, 300, 251, 20))
         self.img_size.setObjectName("img_size")
+        self.img_size.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.img_location = QtWidgets.QLabel(parent=self.tab_3)
+        self.img_location.setGeometry(QtCore.QRect(300, 330, 251, 20))
+        self.img_location.setObjectName("img_location")
+        self.img_location.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.img_location.setFont(font)
         self.copy_selected_btn = QtWidgets.QPushButton(parent=self.tab_3)
         self.copy_selected_btn.setGeometry(QtCore.QRect(350, 370, 141, 81))
         self.copy_selected_btn.setObjectName("copy_selected_btn")
         self.listWidget_5 = ListView_Right(parent=self.tab_3)
         self.listWidget_5.setGeometry(QtCore.QRect(570, 40, 256, 441))
         self.listWidget_5.setObjectName("listWidget_5")
-        self.listWidget_5.setFont(font)
+        new_font = QFont()
+        new_font.setPointSize(3)
+        self.listWidget_5.setFont(new_font)
         self.label_6 = QtWidgets.QLabel(parent=self.tab_3)
         self.label_6.setGeometry(QtCore.QRect(580, 10, 261, 20))
         self.label_6.setObjectName("label_6")
@@ -224,8 +293,8 @@ class Ui_MainWindow(object):
         self.tab_2.setObjectName("tab_2")
         self.src_code_2.addTab(self.tab_2, "")
         self.clear_selected_btn = QtWidgets.QPushButton(self.tab_3)
-        self.clear_selected_btn.setObjectName(u"clear_selected_btn")
-        self.clear_selected_btn.setGeometry(QtCore.QRect(160, 345, 75, 24))
+        self.clear_selected_btn.setObjectName("clear_selected_btn")
+        self.clear_selected_btn.setGeometry(QtCore.QRect(175, 345, 75, 24))
         self.icons_folder = QtWidgets.QLineEdit(parent=self.centralwidget)
         self.icons_folder.setGeometry(QtCore.QRect(10, 20, 201, 22))
         self.icons_folder.setObjectName("icons_folder")
@@ -260,6 +329,10 @@ class Ui_MainWindow(object):
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+        self.loadingSpinnerLabel = QLabel(self.centralwidget)
+        self.loadingSpinnerLabel.setGeometry(QtCore.QRect(360, 10, 100, 50))
+        self.loadingSpinnerLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.loadingSpinnerLabel.setObjectName("loadingSpinnerLabel")
 
         #connect stuff
         self.src_code_search.clicked.connect(self.choose_src_code_directory)
@@ -280,12 +353,22 @@ class Ui_MainWindow(object):
         self.src_code_2.setCurrentIndex(1)
         self.comboBox.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-        #self.search_text.keyPressEvent = self.keyPressEvent
+        self.image_loader.setScaledContents(True)
+        placeholder_logo = QPixmap("centria.jpg")
+        self.image_loader.setPixmap(placeholder_logo)
+    
 
-    #def keyPressEvent(self, event):
-       # if event.key() == Qt.Key.Key_Return or event.key() == Qt.Key.Key_Enter:
-       #     self.search_btn.click()
+    def showLoadingSpinner(self, visible):
+        spinner_path = "spinner_smaller.gif"
+        movie = QMovie(spinner_path)
+        self.loadingSpinnerLabel.setMovie(movie)
 
+        if visible:
+            movie.start()
+            self.loadingSpinnerLabel.show()
+        else:
+            movie.stop()
+            self.loadingSpinnerLabel.hide()
     def on_item_clicked_main(self, index):
         try:
             item = self.listWidget_3.m_model.itemFromIndex(index)
@@ -300,6 +383,7 @@ class Ui_MainWindow(object):
             icon_resolution = get_icon_resolution(data)
             self.img_size.setText(icon_resolution)
             self.img_name.setText(file_name)
+            self.img_location.setText(data)
         except Exception as e:
             print("An error occurred: " + str(e))
 
@@ -350,7 +434,7 @@ class Ui_MainWindow(object):
             self.listWidget_5.m_model.appendRow(item)
 
     def loadIcons(self):
-        search_term = self.search_text.text()
+        search_term = self.search_text.input_field.text()
         folder_path = self.icons_folder.text()
         resolution_check = self.copy_resolution.currentText()
         if resolution_check == "None":
@@ -358,36 +442,10 @@ class Ui_MainWindow(object):
         if len(folder_path) > 2:
             if not os.path.exists(folder_path):
                 return
-            icons = get_svg_files(folder_path, search_term)
-            self.listWidget_3.m_model.clear()
+
             number = int(self.comboBox.currentText())
-            loop_count = 0
-            if resolution_check:
-                for icon in icons:
-                    if loop_count >= number:
-                        break
-                    icon_resolution = get_icon_resolution(icon)
-                    if icon_resolution == resolution_check:
-                        item = QStandardItem()
-                        item.setIcon(QIcon(icon))
-                        item.setData(icon)
-                        file_name = os.path.basename(icon)
-                        split_name = file_name.split(".")[0]
-                        item.setText(split_name)
-                        self.listWidget_3.m_model.appendRow(item)
-                        loop_count += 1
-            else: 
-                for icon in icons:
-                    if loop_count >= number:
-                        break
-                    item = QStandardItem()
-                    item.setIcon(QIcon(icon))
-                    item.setData(icon)
-                    file_name = os.path.basename(icon)
-                    split_name = file_name.split(".")[0]
-                    item.setText(split_name)
-                    self.listWidget_3.m_model.appendRow(item)
-                    loop_count += 1
+            worker = LoadIconsWorker(folder_path, search_term, resolution_check, number, self)
+            QThreadPool.globalInstance().start(worker)
 
     def choose_icons_directory(self):
         dir_name = QFileDialog.getExistingDirectory(self.centralwidget, "Select a Directory")
@@ -539,7 +597,7 @@ class Ui_MainWindow(object):
             self.listWidget_4.m_model.clear()
             self.loadIcons_dest(destination_folder)
             self.loadIcons_dest2(destination_folder)
-            dlg = QMessageBox(self)
+            dlg = QMessageBox()
             dlg.setWindowTitle("copied icons!")
             dlg.setText("Succesfully copied icons!")
             dlg.exec()
