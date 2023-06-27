@@ -1,6 +1,8 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView,QMessageBox, QWidget, QLineEdit, QVBoxLayout
-from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QMovie
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView,
+    QMessageBox, QWidget, QLineEdit, QVBoxLayout)
+from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QMovie, QAction
 from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool
 from PyQt6.QtSvg import QSvgRenderer
 from pathlib import Path
@@ -24,7 +26,7 @@ def get_icon_resolution(file_path):
                 resolution = f"{default_size.width()}x{default_size.height()}"
                 return resolution
             else:
-                return "work in progress"
+                return "error"
         else:
             with Image.open(file_path) as img:
                 width, height = img.size
@@ -119,7 +121,10 @@ class LoadIconsWorker(QRunnable):
                 item.setText(split_name)
                 self.ui.listWidget_3.m_model.appendRow(item)
                 loop_count += 1
-
+        if loop_count == 0:
+            item = QStandardItem()
+            item.setText("No icons found with this name/resolution")
+            self.ui.listWidget_3.m_model.appendRow(item)
         self.ui.showLoadingSpinner(False)
 
 
@@ -169,8 +174,8 @@ class ListView_Right(QListView):
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(837, 619)
+        MainWindow.setObjectName("Icon compiler")
+        MainWindow.resize(850, 650)
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         font = QFont()
@@ -325,10 +330,19 @@ class Ui_MainWindow(object):
         self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 837, 22))
         self.menubar.setObjectName("menubar")
+        self.menusettings = QtWidgets.QMenu(parent=self.menubar)
+        self.menusettings.setObjectName("menusettings")
         MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+        self.actionsettings = QtGui.QAction(parent=MainWindow)
+        self.actionsettings.setObjectName("actionsettings")
+        self.actionInfo = QtGui.QAction(parent=MainWindow)
+        self.actionInfo.setObjectName("actionInfo")
+        self.menusettings.addAction(self.actionsettings)
+        self.menusettings.addAction(self.actionInfo)
+        self.menubar.addAction(self.menusettings.menuAction())
         self.loadingSpinnerLabel = QLabel(self.centralwidget)
         self.loadingSpinnerLabel.setGeometry(QtCore.QRect(360, 10, 100, 50))
         self.loadingSpinnerLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -356,7 +370,38 @@ class Ui_MainWindow(object):
         self.image_loader.setScaledContents(True)
         placeholder_logo = QPixmap("centria.jpg")
         self.image_loader.setPixmap(placeholder_logo)
+
+        self.toolBar = QtWidgets.QToolBar(parent=MainWindow)
+        self.toolBar.setObjectName("toolBar")
+        MainWindow.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, self.toolBar)
+
+        button_action = QAction(QIcon("16x16/actions/help-hint.png"), "info", parent=MainWindow)
+        button_action.setStatusTip("Readme/info")
+        button_action.triggered.connect(self.open_help)
+        self.toolBar.addAction(button_action)
+        self.toolBar.addSeparator()
+        button_action2 = QAction(QIcon("16x16/actions/settings-configure.png"), "settings", parent=MainWindow)
+        button_action2.setStatusTip("Settings")
+        button_action2.triggered.connect(self.toolBar_settings)
+        self.toolBar.addAction(button_action2)
+
+    def toolBar_settings(self, s):
+        print("click", s)
     
+    def open_help(self):
+        popup = QMessageBox()
+        popup.setWindowTitle("Info Window")
+        long_string = '''
+        The idea for this app is to make huge icon sets in to smaller sets.
+        Select folder where you have your big icon set (icons folder) and
+        select folder where to copy all the selected icons (Destination).
+        application shows all the icons in icons folder where you can filter for different sizes and names.
+        You can also give source code in src_code tab to automatically find icons needed.
+        src code search made for Qt projects and doesnt work if done with `` instead of ""
+        More options coming later
+        '''
+        popup.setText(long_string)
+        popup.exec()
 
     def showLoadingSpinner(self, visible):
         spinner_path = "spinner_smaller.gif"
@@ -410,8 +455,9 @@ class Ui_MainWindow(object):
     def loadIcons_dest(self, path):
         icons = get_svg_files(path)
         self.listWidget.m_model.clear()
-        for index, icon in enumerate(icons):
-            if index >= 100:
+        loop_count = 0
+        for icon in icons:
+            if loop_count >= 100:
                 break
             item = QStandardItem()
             item.setIcon(QIcon(icon))
@@ -419,12 +465,14 @@ class Ui_MainWindow(object):
             split_name = file_name.split(".")[0]
             item.setText(split_name)
             self.listWidget.m_model.appendRow(item)
+            loop_count += 1
             
     def loadIcons_dest2(self, path):
         icons = get_svg_files(path)
         self.listWidget_5.m_model.clear()
-        for index, icon in enumerate(icons):
-            if index >= 100:
+        loop_count = 0
+        for icon in icons:
+            if loop_count >= 100:
                 break
             item = QStandardItem()
             item.setIcon(QIcon(icon))
@@ -432,6 +480,7 @@ class Ui_MainWindow(object):
             split_name = file_name.split(".")[0]
             item.setText(split_name)
             self.listWidget_5.m_model.appendRow(item)
+            loop_count += 1
 
     def loadIcons(self):
         search_term = self.search_text.input_field.text()
@@ -609,7 +658,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("Icon compiler", "Icon compiler"))
         self.src_code_2.setToolTip(_translate("MainWindow", "<html><head/><body><p>src code</p></body></html>"))
         self.src_code_2.setWhatsThis(_translate("MainWindow", "<html><head/><body><p>src code</p><p><br/></p></body></html>"))
         self.src_code_search.setText(_translate("MainWindow", "src code"))
