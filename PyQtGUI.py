@@ -14,7 +14,6 @@ from PIL import Image
 
 #global variables
 names_to_match = [] 
-check_all_found = []
 
 def get_icon_resolution(file_path):
     try:
@@ -68,7 +67,6 @@ def find_icons_in_files(folder_path):
     for file in icons:
          if not file in names_to_match:
             names_to_match.append(file)
-            check_all_found.append(file)
 
 def get_themes(folder_path, search_term=None):
     themes = []
@@ -201,8 +199,8 @@ class Ui_MainWindow(object):
         self.label = QtWidgets.QLabel(parent=self.src_code)
         self.label.setGeometry(QtCore.QRect(80, 120, 140, 16))
         self.label.setObjectName("label")
-        self.src_code_add = QtWidgets.QLineEdit(parent=self.src_code)
-        self.src_code_add.setGeometry(QtCore.QRect(10, 410, 181, 22))
+        self.src_code_add = InputFieldWidget(self.add_name,parent=self.src_code)
+        self.src_code_add.setGeometry(QtCore.QRect(10, 402, 181, 40))
         self.src_code_add.setObjectName("src_code_add")
         self.src_code_add_btn = QtWidgets.QPushButton(parent=self.src_code)
         self.src_code_add_btn.setGeometry(QtCore.QRect(210, 410, 101, 24))
@@ -299,7 +297,7 @@ class Ui_MainWindow(object):
         self.src_code_2.addTab(self.tab_2, "")
         self.clear_selected_btn = QtWidgets.QPushButton(self.tab_3)
         self.clear_selected_btn.setObjectName("clear_selected_btn")
-        self.clear_selected_btn.setGeometry(QtCore.QRect(175, 345, 75, 24))
+        self.clear_selected_btn.setGeometry(QtCore.QRect(180, 345, 75, 24))
         self.icons_folder = QtWidgets.QLineEdit(parent=self.centralwidget)
         self.icons_folder.setGeometry(QtCore.QRect(10, 20, 201, 22))
         self.icons_folder.setObjectName("icons_folder")
@@ -455,9 +453,8 @@ class Ui_MainWindow(object):
     def loadIcons_dest(self, path):
         icons = get_svg_files(path)
         self.listWidget.m_model.clear()
-        loop_count = 0
-        for icon in icons:
-            if loop_count >= 100:
+        for index, icon in enumerate(icons):
+            if index >= 100:
                 break
             item = QStandardItem()
             item.setIcon(QIcon(icon))
@@ -465,14 +462,12 @@ class Ui_MainWindow(object):
             split_name = file_name.split(".")[0]
             item.setText(split_name)
             self.listWidget.m_model.appendRow(item)
-            loop_count += 1
             
     def loadIcons_dest2(self, path):
         icons = get_svg_files(path)
         self.listWidget_5.m_model.clear()
-        loop_count = 0
-        for icon in icons:
-            if loop_count >= 100:
+        for index, icon in enumerate(icons):
+            if index >= 100:
                 break
             item = QStandardItem()
             item.setIcon(QIcon(icon))
@@ -480,7 +475,6 @@ class Ui_MainWindow(object):
             split_name = file_name.split(".")[0]
             item.setText(split_name)
             self.listWidget_5.m_model.appendRow(item)
-            loop_count += 1
 
     def loadIcons(self):
         search_term = self.search_text.input_field.text()
@@ -513,6 +507,7 @@ class Ui_MainWindow(object):
 
 
     def choose_src_code_directory(self):
+        self.listWidget_2.clear()
         dir_name = QFileDialog.getExistingDirectory(self.centralwidget, "Select a Directory")
         if dir_name:
             path = Path(dir_name)
@@ -522,11 +517,11 @@ class Ui_MainWindow(object):
                 self.listWidget_2.addItem(icon)
                 
     def add_name(self):
-        name = self.src_code_add.text()
+        name = self.src_code_add.input_field.text()
         if name:
             names_to_match.append(name)
             self.listWidget_2.addItem(name)
-            self.src_code_add.clear()
+            self.src_code_add.input_field.clear()
 
     def copyfiles(self):
         source_folder = self.icons_folder.text()
@@ -534,6 +529,7 @@ class Ui_MainWindow(object):
         svg_files = get_svg_files(source_folder) 
         index_themes = get_themes(source_folder)  
         src_code = self.src_code_folder.text()
+        check_all_found = names_to_match
         find_icons_in_files(src_code)
         resolution_check = self.src_code_resolution.currentText()
         if resolution_check == "None":

@@ -4,20 +4,15 @@ import glob
 import sys
 import time
 from PIL import Image
-
-
+from PyQt6.QtSvg import QSvgRenderer
 
 src_code = sys.argv[1]
 icon_source = sys.argv[2]
 icon_destination = os.path.join(src_code, "icons")
-#resolution_check = "64x64"
 try:
   resolution_check = sys.argv[3]
 except IndexError:
   resolution_check = None
-
-
-
 
 names_to_match = []
 check_all_found = []
@@ -72,10 +67,20 @@ def find_icons_in_files(folder_path):
 
 def get_icon_resolution(file_path):
     try:
-        with Image.open(file_path) as img:
-            width, height = img.size
-            resolution = f"{width}x{height}"
-            return resolution
+        if file_path.endswith(".svg"):
+            renderer = QSvgRenderer()
+            if renderer.load(file_path):
+                # Get the default size of the SVG file
+                default_size = renderer.defaultSize()
+                resolution = f"{default_size.width()}x{default_size.height()}"
+                return resolution
+            else:
+                return "error"
+        else:
+            with Image.open(file_path) as img:
+                width, height = img.size
+                resolution = f"{width}x{height}"
+                return resolution
     except (IOError, OSError):
         #print(OSError)
         return None
