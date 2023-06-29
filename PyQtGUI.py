@@ -15,6 +15,13 @@ from PIL import Image
 #global variables
 names_to_match = [] 
 
+def get_next_character_after_at(string):
+    at_index = string.find('@')
+    if at_index != -1 and at_index < len(string) - 1:
+        return string[at_index + 1]
+    else:
+        return None
+
 def get_icon_resolution(file_path):
     try:
         if file_path.endswith(".svg"):
@@ -29,8 +36,18 @@ def get_icon_resolution(file_path):
         else:
             with Image.open(file_path) as img:
                 width, height = img.size
-                resolution = f"{width}x{height}"
-                return resolution
+            #lets hope u dont have multiple @ in ur path
+                if "@" in file_path:
+                    divider = get_next_character_after_at(file_path)
+                    if divider == "2" or divider == "3" or divider == "4":
+                        divider = int(divider)
+                        resolution = f"{int(width/divider)}x{int(height/divider)}"
+                    else:
+                        resolution = f"{width}x{height}"
+                    return resolution
+                else: 
+                    resolution = f"{width}x{height}"
+                    return resolution
     except (IOError, OSError):
         #print(OSError)
         return None
@@ -357,6 +374,7 @@ class Ui_MainWindow(object):
         self.copy_resolution.currentIndexChanged.connect(self.loadIcons)
         self.listWidget_3.clicked.connect(self.on_item_clicked_main)
         self.listWidget_4.clicked.connect(self.delete_item)
+        self.listWidget_2.clicked.connect(self.delete_item_src_code)
         self.clear_selected_btn.clicked.connect(self.clear_selected)
         self.select_all.clicked.connect(self.select_all_func)
         self.copy_selected_btn.clicked.connect(self.copy_files)
@@ -436,6 +454,14 @@ class Ui_MainWindow(object):
     def delete_item(self, item):
         row = item.row()
         self.listWidget_4.m_model.removeRow(row)
+
+    def delete_item_src_code(self, item):
+        row = item.row()
+        index = self.listWidget_2.itemFromIndex(item)
+        name = index.text()
+        self.listWidget_2.takeItem(row)
+        if name in names_to_match:
+            names_to_match.remove(name)
 
     def select_all_func(self):
         for row in range(self.listWidget_3.m_model.rowCount()):
@@ -534,7 +560,6 @@ class Ui_MainWindow(object):
         resolution_check = self.src_code_resolution.currentText()
         if resolution_check == "None":
             resolution_check = None
-
         try:
             if not os.path.exists(source_folder):
                 dlg = QMessageBox()
