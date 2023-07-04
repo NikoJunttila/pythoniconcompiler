@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView,
-    QMessageBox, QWidget, QLineEdit, QVBoxLayout)
+    QMessageBox, QWidget, QLineEdit, QVBoxLayout, QCheckBox)
 from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QMovie, QAction
 from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool
 from PyQt6.QtSvg import QSvgRenderer
@@ -10,11 +10,9 @@ import glob
 import os
 import shutil
 from PIL import Image
+from PyQt6 import QtCore, QtGui, QtWidgets
 
-
-#global variables
 names_to_match = [] 
-
 def get_next_character_after_at(string):
     at_index = string.find('@')
     if at_index != -1 and at_index < len(string) - 1:
@@ -27,7 +25,6 @@ def get_icon_resolution(file_path):
         if file_path.endswith(".svg"):
             renderer = QSvgRenderer()
             if renderer.load(file_path):
-                # Get the default size of the SVG file
                 default_size = renderer.defaultSize()
                 resolution = f"{default_size.width()}x{default_size.height()}"
                 return resolution
@@ -51,6 +48,15 @@ def get_icon_resolution(file_path):
     except (IOError, OSError):
         #print(OSError)
         return None
+    
+def get_themes(folder_path, search_term=None):
+    themes = []
+    for root, _, files in os.walk(folder_path):
+        for file in files:
+            if file.endswith(".theme"):
+                if search_term is None or search_term.lower() in file.lower():
+                    themes.append(os.path.join(root, file))
+    return themes
 
 def get_svg_files(folder_path, search_term=None):
         svg_files = []
@@ -85,23 +91,41 @@ def find_icons_in_files(folder_path):
          if not file in names_to_match:
             names_to_match.append(file)
 
-def get_themes(folder_path, search_term=None):
-    themes = []
-    for root, _, files in os.walk(folder_path):
-        for file in files:
-            if file.endswith(".theme"):
-                if search_term is None or search_term.lower() in file.lower():
-                    themes.append(os.path.join(root, file))
-    return themes
+
+def get_all_resolutions(path):
+    icons = get_svg_files(path)
+    resolutions = []
+    
+    thread_pool = QThreadPool.globalInstance()
+    for icon in icons:
+        worker = ResolutionWorker(icon, resolutions)
+        worker.setAutoDelete(True)
+        thread_pool.start(worker)
+    
+    thread_pool.waitForDone()
+    
+    return resolutions
+
+class ResolutionWorker(QRunnable):
+    def __init__(self, icon, resolutions):
+        super().__init__()
+        self.icon = icon
+        self.resolutions = resolutions
+    
+    def run(self):
+        resolution = get_icon_resolution(self.icon)
+        if resolution not in self.resolutions:
+            self.resolutions.append(resolution)
 
 class LoadIconsWorker(QRunnable):
-    def __init__(self, folder_path, search_term, resolution_check, number, ui):
+    def __init__(self, folder_path, search_term, resolution_check, number,categories_check, ui):
         super().__init__()
         self.folder_path = folder_path
         self.search_term = search_term
         self.resolution_check = resolution_check
         self.number = number
         self.ui = ui
+        self.categories_check = categories_check
 
     @pyqtSlot()
     def run(self):
@@ -110,12 +134,39 @@ class LoadIconsWorker(QRunnable):
         icons = get_svg_files(self.folder_path, self.search_term)
         self.ui.listWidget_3.m_model.clear()
         loop_count = 0
-        if self.resolution_check:
+        if self.resolution_check and self.categories_check:
+            for icon in icons:
+                if loop_count >= self.number:
+                    break
+                icon_resolution = get_icon_resolution(icon)
+                if icon_resolution == self.resolution_check and self.categories_check in icon:
+                    item = QStandardItem()
+                    item.setIcon(QIcon(icon))
+                    item.setData(icon)
+                    file_name = os.path.basename(icon)
+                    split_name = file_name.split(".")[0]
+                    item.setText(split_name)
+                    self.ui.listWidget_3.m_model.appendRow(item)
+                    loop_count += 1
+        elif self.resolution_check:
             for icon in icons:
                 if loop_count >= self.number:
                     break
                 icon_resolution = get_icon_resolution(icon)
                 if icon_resolution == self.resolution_check:
+                    item = QStandardItem()
+                    item.setIcon(QIcon(icon))
+                    item.setData(icon)
+                    file_name = os.path.basename(icon)
+                    split_name = file_name.split(".")[0]
+                    item.setText(split_name)
+                    self.ui.listWidget_3.m_model.appendRow(item)
+                    loop_count += 1
+        elif self.categories_check:
+            for icon in icons:
+                if loop_count >= self.number:
+                    break
+                if self.categories_check in icon:
                     item = QStandardItem()
                     item.setIcon(QIcon(icon))
                     item.setData(icon)
@@ -138,10 +189,9 @@ class LoadIconsWorker(QRunnable):
                 loop_count += 1
         if loop_count == 0:
             item = QStandardItem()
-            item.setText("No icons found with this name/resolution")
+            item.setText("No icons found with this name or resolution")
             self.ui.listWidget_3.m_model.appendRow(item)
         self.ui.showLoadingSpinner(False)
-
 
 class ListView_Left(QListView):
     def __init__(self, parent=None):
@@ -157,8 +207,8 @@ class InputFieldWidget(QWidget):
     def __init__(self, on_enter_pressed=None, parent=None):
         super().__init__(parent)
         self.input_field = QLineEdit(self)
-        layout = QVBoxLayout(self)
-        layout.addWidget(self.input_field)
+        #layout = QVBoxLayout(self)
+        #layout.addWidget(self.input_field)
         self.input_field.installEventFilter(self)
 
         self.on_enter_pressed = on_enter_pressed
@@ -187,56 +237,160 @@ class ListView_Right(QListView):
         if item is not None:
             print("Clicked item data:", item.text())
 
+
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
-        MainWindow.setObjectName("Icon compiler")
-        MainWindow.resize(850, 650)
-        self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
-        self.centralwidget.setObjectName("centralwidget")
+        MainWindow.setObjectName("MainWindow")
+        MainWindow.resize(894, 754)
         font = QFont()
         font.setPointSize(7)
+        self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
+        self.centralwidget.setObjectName("centralwidget")
+        self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
+        self.verticalLayout_2.setObjectName("verticalLayout_2")
+        self.horizontalLayout = QtWidgets.QHBoxLayout()
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.icons_folder = QtWidgets.QLineEdit(parent=self.centralwidget)
+        self.icons_folder.setObjectName("icons_folder")
+        self.horizontalLayout.addWidget(self.icons_folder)
+        self.icons_folder_btn = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.icons_folder_btn.setObjectName("icons_folder_btn")
+        self.horizontalLayout.addWidget(self.icons_folder_btn)
+        self.label_5 = QtWidgets.QLabel(parent=self.centralwidget)
+        self.label_5.setObjectName("label_5")
+        self.horizontalLayout.addWidget(self.label_5)
+        self.destination_folder = QtWidgets.QLineEdit(parent=self.centralwidget)
+        self.destination_folder.setObjectName("destination_folder")
+        self.horizontalLayout.addWidget(self.destination_folder)
+        self.destination_folder_btn = QtWidgets.QPushButton(parent=self.centralwidget)
+        self.destination_folder_btn.setObjectName("destination_folder_btn")
+        self.horizontalLayout.addWidget(self.destination_folder_btn)
+        self.verticalLayout_2.addLayout(self.horizontalLayout)
         self.src_code_2 = QtWidgets.QTabWidget(parent=self.centralwidget)
-        self.src_code_2.setGeometry(QtCore.QRect(0, 70, 841, 521))
         self.src_code_2.setObjectName("src_code_2")
         self.src_code = QtWidgets.QWidget()
         self.src_code.setObjectName("src_code")
-        self.listWidget = ListView_Right(parent=self.src_code)
-        self.listWidget.setGeometry(QtCore.QRect(520, 50, 301, 381))
-        self.listWidget.setObjectName("listWidget")
-        self.listWidget.setFont(font)
+        self.horizontalLayout_2 = QtWidgets.QHBoxLayout(self.src_code)
+        self.horizontalLayout_2.setObjectName("horizontalLayout_2")
+        self.gridLayout = QtWidgets.QGridLayout()
+        self.gridLayout.setObjectName("gridLayout")
         self.src_code_folder = QtWidgets.QLineEdit(parent=self.src_code)
-        self.src_code_folder.setGeometry(QtCore.QRect(50, 50, 201, 22))
         self.src_code_folder.setObjectName("src_code_folder")
+        self.gridLayout.addWidget(self.src_code_folder, 0, 0, 1, 2)
         self.src_code_search = QtWidgets.QPushButton(parent=self.src_code)
-        self.src_code_search.setGeometry(QtCore.QRect(110, 80, 75, 24))
         self.src_code_search.setObjectName("src_code_search")
-        self.listWidget_2 = QtWidgets.QListWidget(parent=self.src_code)
-        self.listWidget_2.setGeometry(QtCore.QRect(10, 150, 301, 241))
-        self.listWidget_2.setObjectName("listWidget_2")
+        self.gridLayout.addWidget(self.src_code_search, 1, 0, 1, 2)
         self.label = QtWidgets.QLabel(parent=self.src_code)
-        self.label.setGeometry(QtCore.QRect(80, 120, 140, 16))
         self.label.setObjectName("label")
+        self.gridLayout.addWidget(self.label, 2, 0, 1, 2)
+        self.listWidget_2 = QtWidgets.QListWidget(parent=self.src_code)
+        big_font = QFont()
+        big_font.setPointSize(15)
+        self.listWidget_2.setFont(big_font)
+        self.listWidget_2.setObjectName("listWidget_2")
+        self.gridLayout.addWidget(self.listWidget_2, 3, 0, 1, 2)
         self.src_code_add = InputFieldWidget(self.add_name,parent=self.src_code)
-        self.src_code_add.setGeometry(QtCore.QRect(10, 402, 181, 40))
         self.src_code_add.setObjectName("src_code_add")
+        self.gridLayout.addWidget(self.src_code_add, 4, 0, 1, 1)
         self.src_code_add_btn = QtWidgets.QPushButton(parent=self.src_code)
-        self.src_code_add_btn.setGeometry(QtCore.QRect(210, 410, 101, 24))
         self.src_code_add_btn.setObjectName("src_code_add_btn")
+        self.gridLayout.addWidget(self.src_code_add_btn, 4, 1, 1, 1)
+        self.horizontalLayout_2.addLayout(self.gridLayout)
+        self.gridLayout_2 = QtWidgets.QGridLayout()
+        self.gridLayout_2.setObjectName("gridLayout_2")
         self.copy_src_code = QtWidgets.QPushButton(parent=self.src_code)
-        self.copy_src_code.setGeometry(QtCore.QRect(360, 150, 81, 241))
         self.copy_src_code.setObjectName("copy_src_code")
+        self.gridLayout_2.addWidget(self.copy_src_code, 5, 0, 1, 2)
+        self.horizontalLayout_2.addLayout(self.gridLayout_2)
+        self.verticalLayout = QtWidgets.QVBoxLayout()
+        self.verticalLayout.setObjectName("verticalLayout")
         self.label_2 = QtWidgets.QLabel(parent=self.src_code)
-        self.label_2.setGeometry(QtCore.QRect(540, 20, 241, 20))
         self.label_2.setObjectName("label_2")
+        self.verticalLayout.addWidget(self.label_2)
+        self.listWidget = ListView_Right(parent=self.src_code)
+        self.listWidget.setObjectName("listWidget")
+        self.verticalLayout.addWidget(self.listWidget)
+        self.horizontalLayout_2.addLayout(self.verticalLayout)
         self.src_code_2.addTab(self.src_code, "")
         self.tab_3 = QtWidgets.QWidget()
         self.tab_3.setObjectName("tab_3")
+        self.widget = QtWidgets.QWidget(parent=self.tab_3)
+        self.widget.setGeometry(QtCore.QRect(0, 10, 235, 56))
+        self.widget.setObjectName("widget")
+        self.gridLayout_3 = QtWidgets.QGridLayout(self.widget)
+        self.gridLayout_3.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout_3.setObjectName("gridLayout_3")
+        self.search_text = InputFieldWidget(self.loadIcons,parent=self.tab_3)
+        self.search_text.setObjectName("search_text")
+        self.gridLayout_3.addWidget(self.search_text, 0, 0, 1, 2)
+        self.search_btn = QtWidgets.QPushButton(parent=self.widget)
+        self.search_btn.setObjectName("search_btn")
+        self.gridLayout_3.addWidget(self.search_btn, 0, 2, 1, 1)
+        self.copy_resolution = QtWidgets.QComboBox(parent=self.widget)
+        self.copy_resolution.setObjectName("copy_resolution")
+        self.copy_resolution.addItem("")
+        self.gridLayout_3.addWidget(self.copy_resolution, 1, 0, 1, 1)
+        self.comboBox_2 = QtWidgets.QComboBox(parent=self.widget)
+        self.comboBox_2.setObjectName("comboBox_2")
+        self.comboBox_2.addItem("")
+        self.comboBox_2.addItem("")
+        self.comboBox_2.addItem("")
+        self.comboBox_2.addItem("")
+        self.comboBox_2.addItem("")
+        self.comboBox_2.addItem("")
+        self.comboBox_2.addItem("")
+        self.gridLayout_3.addWidget(self.comboBox_2, 1, 1, 1, 1)
+        self.select_all = QtWidgets.QPushButton(parent=self.widget)
+        self.select_all.setObjectName("select_all")
+        self.gridLayout_3.addWidget(self.select_all, 1, 2, 1, 1)
+        self.widget1 = QtWidgets.QWidget(parent=self.tab_3)
+        self.widget1.setGeometry(QtCore.QRect(300, 10, 261, 471))
+        self.widget1.setObjectName("widget1")
+        self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.widget1)
+        self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_4.setObjectName("verticalLayout_4")
+        self.image_loader = QtWidgets.QLabel(parent=self.widget1)
+        self.image_loader.setObjectName("image_loader")
+        self.verticalLayout_4.addWidget(self.image_loader)
+        self.img_name = QtWidgets.QLabel(parent=self.widget1)
+        self.img_name.setObjectName("img_name")
+        self.verticalLayout_4.addWidget(self.img_name)
+        self.img_size = QtWidgets.QLabel(parent=self.widget1)
+        self.img_size.setObjectName("img_size")
+        self.verticalLayout_4.addWidget(self.img_size)
+        self.label_4 = QtWidgets.QLabel(parent=self.widget1)
+        self.label_4.setObjectName("label_4")
+        self.verticalLayout_4.addWidget(self.label_4)
+        self.copy_selected_btn = QtWidgets.QPushButton(parent=self.widget1)
+        self.copy_selected_btn.setObjectName("copy_selected_btn")
+        self.verticalLayout_4.addWidget(self.copy_selected_btn)
+        self.widget2 = QtWidgets.QWidget(parent=self.tab_3)
+        self.widget2.setGeometry(QtCore.QRect(570, 10, 258, 216))
+        self.widget2.setObjectName("widget2")
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.widget2)
+        self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_3.setObjectName("verticalLayout_3")
+        self.label_6 = QtWidgets.QLabel(parent=self.widget2)
+        self.label_6.setObjectName("label_6")
+        self.verticalLayout_3.addWidget(self.label_6)
+        self.listWidget_5 = ListView_Right(parent=self.tab_3)
+        self.listWidget_5.setObjectName("listWidget_5")
+        self.verticalLayout_3.addWidget(self.listWidget_5)
+        self.widget3 = QtWidgets.QWidget(parent=self.tab_3)
+        self.widget3.setGeometry(QtCore.QRect(0, 70, 258, 470))
+        self.widget3.setObjectName("widget3")
+        self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.widget3)
+        self.verticalLayout_5.setContentsMargins(0, 0, 0, 0)
+        self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.listWidget_3 = ListView_Left(parent=self.tab_3)
-        self.listWidget_3.setGeometry(QtCore.QRect(0, 70, 291, 251))
         self.listWidget_3.setObjectName("listWidget_3")
-        self.listWidget_3.setFont(font)
-        self.comboBox = QtWidgets.QComboBox(parent=self.tab_3)
-        self.comboBox.setGeometry(QtCore.QRect(150, 320, 69, 22))
+        self.verticalLayout_5.addWidget(self.listWidget_3)
+        self.formLayout = QtWidgets.QFormLayout()
+        self.formLayout.setObjectName("formLayout")
+        self.label_3 = QtWidgets.QLabel(parent=self.widget3)
+        self.label_3.setObjectName("label_3")
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_3)
+        self.comboBox = QtWidgets.QComboBox(parent=self.widget3)
         self.comboBox.setObjectName("comboBox")
         self.comboBox.addItem("")
         self.comboBox.addItem("")
@@ -245,125 +399,49 @@ class Ui_MainWindow(object):
         self.comboBox.addItem("")
         self.comboBox.addItem("")
         self.comboBox.addItem("")
-        self.src_reso_label = QLabel(self.src_code)
-        self.src_reso_label.setObjectName(u"src_reso_label")
-        self.src_reso_label.setGeometry(QtCore.QRect(350, 90, 111, 16))
-        self.src_code_resolution = QComboBox(self.src_code)
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.addItem("")
-        self.src_code_resolution.setObjectName(u"src_code_resolution")
-        self.src_code_resolution.setGeometry(QtCore.QRect(360, 110, 81, 22))
-        self.label_3 = QtWidgets.QLabel(parent=self.tab_3)
-        self.label_3.setGeometry(QtCore.QRect(50, 320, 100, 20))
-        self.label_3.setObjectName("label_3")
-        self.select_all = QtWidgets.QPushButton(self.tab_3)
-        self.select_all.setObjectName(u"select_all")
-        self.select_all.setGeometry(QtCore.QRect(210, 40, 75, 24))
-        self.listWidget_4 = ListView_Left(parent=self.tab_3)
-        self.listWidget_4.setGeometry(QtCore.QRect(0, 370, 291, 111))
-        self.listWidget_4.setObjectName("listWidget_4")
-        self.search_text = InputFieldWidget(self.loadIcons,parent=self.tab_3)
-        self.search_text.setGeometry(QtCore.QRect(0, 5, 181, 40))
-        self.search_text.setObjectName("search_text")
-        self.search_btn = QtWidgets.QPushButton(parent=self.tab_3)
-        self.search_btn.setGeometry(QtCore.QRect(190, 12, 75, 24))
-        self.search_btn.setObjectName("search_btn")
-        self.img_name = QtWidgets.QLabel(parent=self.tab_3)
-        self.img_name.setGeometry(QtCore.QRect(300, 260, 231, 20))
-        self.img_name.setObjectName("img_name")
-        self.img_name.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.img_size = QtWidgets.QLabel(parent=self.tab_3)
-        self.img_size.setGeometry(QtCore.QRect(300, 300, 251, 20))
-        self.img_size.setObjectName("img_size")
-        self.img_size.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.img_location = QtWidgets.QLabel(parent=self.tab_3)
-        self.img_location.setGeometry(QtCore.QRect(300, 330, 251, 20))
-        self.img_location.setObjectName("img_location")
-        self.img_location.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.img_location.setFont(font)
-        self.copy_selected_btn = QtWidgets.QPushButton(parent=self.tab_3)
-        self.copy_selected_btn.setGeometry(QtCore.QRect(350, 370, 141, 81))
-        self.copy_selected_btn.setObjectName("copy_selected_btn")
-        self.listWidget_5 = ListView_Right(parent=self.tab_3)
-        self.listWidget_5.setGeometry(QtCore.QRect(570, 40, 256, 441))
-        self.listWidget_5.setObjectName("listWidget_5")
-        new_font = QFont()
-        new_font.setPointSize(3)
-        self.listWidget_5.setFont(new_font)
-        self.label_6 = QtWidgets.QLabel(parent=self.tab_3)
-        self.label_6.setGeometry(QtCore.QRect(580, 10, 261, 20))
-        self.label_6.setObjectName("label_6")
-        self.image_loader = QtWidgets.QLabel(parent=self.tab_3)
-        self.image_loader.setGeometry(QtCore.QRect(300, 10, 231, 231))
-        self.image_loader.setObjectName("image_loader")
-        self.label_8 = QtWidgets.QLabel(parent=self.tab_3)
-        self.label_8.setGeometry(QtCore.QRect(80, 350, 110, 16))
+        self.formLayout.setWidget(0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.comboBox)
+        self.label_8 = QtWidgets.QLabel(parent=self.widget3)
         self.label_8.setObjectName("label_8")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_8)
+        self.clear_selected_btn = QtWidgets.QPushButton(parent=self.widget3)
+        self.clear_selected_btn.setObjectName("clear_selected_btn")
+        self.formLayout.setWidget(1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.clear_selected_btn)
+        self.verticalLayout_5.addLayout(self.formLayout)
+        self.listWidget_4 = ListView_Left(parent=self.tab_3)
+        self.listWidget_4.setObjectName("listWidget_4")
+        self.verticalLayout_5.addWidget(self.listWidget_4)
         self.src_code_2.addTab(self.tab_3, "")
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
         self.src_code_2.addTab(self.tab_2, "")
-        self.clear_selected_btn = QtWidgets.QPushButton(self.tab_3)
-        self.clear_selected_btn.setObjectName("clear_selected_btn")
-        self.clear_selected_btn.setGeometry(QtCore.QRect(180, 345, 75, 24))
-        self.icons_folder = QtWidgets.QLineEdit(parent=self.centralwidget)
-        self.icons_folder.setGeometry(QtCore.QRect(10, 20, 201, 22))
-        self.icons_folder.setObjectName("icons_folder")
-        self.destination_folder = QtWidgets.QLineEdit(parent=self.centralwidget)
-        self.destination_folder.setGeometry(QtCore.QRect(510, 20, 201, 22))
-        self.destination_folder.setObjectName("destination_folder")
-        self.icons_folder_btn = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.icons_folder_btn.setGeometry(QtCore.QRect(230, 20, 100, 24))
-        self.icons_folder_btn.setObjectName("icons_folder_btn")
-        self.destination_folder_btn = QtWidgets.QPushButton(parent=self.centralwidget)
-        self.destination_folder_btn.setGeometry(QtCore.QRect(730, 20, 100, 24))
-        self.destination_folder_btn.setObjectName("destination_folder_btn")
-        self.copy_resolution = QComboBox(self.tab_3)
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.addItem("")
-        self.copy_resolution.setObjectName(u"copy_resolution")
-        self.copy_resolution.setGeometry(QtCore.QRect(0, 40, 81, 21))
+        self.verticalLayout_2.addWidget(self.src_code_2)
         MainWindow.setCentralWidget(self.centralwidget)
-        self.menubar = QtWidgets.QMenuBar(parent=MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 837, 22))
-        self.menubar.setObjectName("menubar")
-        self.menusettings = QtWidgets.QMenu(parent=self.menubar)
-        self.menusettings.setObjectName("menusettings")
-        MainWindow.setMenuBar(self.menubar)
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
+        self.toolBar = QtWidgets.QToolBar(parent=MainWindow)
+        self.toolBar.setObjectName("toolBar")
+        MainWindow.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, self.toolBar)
         self.actionsettings = QtGui.QAction(parent=MainWindow)
         self.actionsettings.setObjectName("actionsettings")
         self.actionInfo = QtGui.QAction(parent=MainWindow)
         self.actionInfo.setObjectName("actionInfo")
-        self.menusettings.addAction(self.actionsettings)
-        self.menusettings.addAction(self.actionInfo)
-        self.menubar.addAction(self.menusettings.menuAction())
-        self.loadingSpinnerLabel = QLabel(self.centralwidget)
-        self.loadingSpinnerLabel.setGeometry(QtCore.QRect(360, 10, 100, 50))
-        self.loadingSpinnerLabel.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.loadingSpinnerLabel.setObjectName("loadingSpinnerLabel")
-
-        #connect stuff
+        self.toolBar.addSeparator()
+        self.retranslateUi(MainWindow)
+        self.src_code_2.setCurrentIndex(0)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+        #other stuff
+        self.image_loader.setScaledContents(True)
+        placeholder_logo = QPixmap("centria.jpg")
+        self.image_loader.setPixmap(placeholder_logo)
+        self.listWidget.setFont(font)
+        self.listWidget_3.setFont(font)
+        self.label_4.setFont(font)
+        new_font = QFont()
+        new_font.setPointSize(3)
+        self.listWidget_5.setFont(new_font)
+        self.comboBox.setCurrentIndex(1)
+        #connections
         self.src_code_search.clicked.connect(self.choose_src_code_directory)
         self.src_code_add_btn.clicked.connect(self.add_name)
         self.icons_folder_btn.clicked.connect(self.choose_icons_directory)
@@ -372,20 +450,15 @@ class Ui_MainWindow(object):
         self.copy_src_code.clicked.connect(self.copyfiles)
         self.search_btn.clicked.connect(self.loadIcons)
         self.copy_resolution.currentIndexChanged.connect(self.loadIcons)
+        self.comboBox_2.currentIndexChanged.connect(self.loadIcons)
         self.listWidget_3.clicked.connect(self.on_item_clicked_main)
         self.listWidget_4.clicked.connect(self.delete_item)
         self.listWidget_2.clicked.connect(self.delete_item_src_code)
         self.clear_selected_btn.clicked.connect(self.clear_selected)
         self.select_all.clicked.connect(self.select_all_func)
         self.copy_selected_btn.clicked.connect(self.copy_files)
-        
-        self.retranslateUi(MainWindow)
-        self.src_code_2.setCurrentIndex(1)
-        self.comboBox.setCurrentIndex(1)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
-        self.image_loader.setScaledContents(True)
-        placeholder_logo = QPixmap("centria.jpg")
-        self.image_loader.setPixmap(placeholder_logo)
+
+        self.selected_items = []
 
         self.toolBar = QtWidgets.QToolBar(parent=MainWindow)
         self.toolBar.setObjectName("toolBar")
@@ -422,14 +495,15 @@ class Ui_MainWindow(object):
     def showLoadingSpinner(self, visible):
         spinner_path = "spinner_smaller.gif"
         movie = QMovie(spinner_path)
-        self.loadingSpinnerLabel.setMovie(movie)
+        self.label_5.setMovie(movie)
 
         if visible:
             movie.start()
-            self.loadingSpinnerLabel.show()
+            self.label_5.show()
         else:
             movie.stop()
-            self.loadingSpinnerLabel.hide()
+            self.label_5.hide()
+
     def on_item_clicked_main(self, index):
         try:
             item = self.listWidget_3.m_model.itemFromIndex(index)
@@ -444,7 +518,7 @@ class Ui_MainWindow(object):
             icon_resolution = get_icon_resolution(data)
             self.img_size.setText(icon_resolution)
             self.img_name.setText(file_name)
-            self.img_location.setText(data)
+            self.label_4.setText(data)
         except Exception as e:
             print("An error occurred: " + str(e))
 
@@ -506,34 +580,41 @@ class Ui_MainWindow(object):
         search_term = self.search_text.input_field.text()
         folder_path = self.icons_folder.text()
         resolution_check = self.copy_resolution.currentText()
+        categories_check = self.comboBox_2.currentText()
         if resolution_check == "None":
             resolution_check = None
+        if categories_check == "None":
+            categories_check = None
         if len(folder_path) > 2:
             if not os.path.exists(folder_path):
                 return
-
             number = int(self.comboBox.currentText())
-            worker = LoadIconsWorker(folder_path, search_term, resolution_check, number, self)
+            worker = LoadIconsWorker(folder_path, search_term, resolution_check, number,categories_check, self)
             QThreadPool.globalInstance().start(worker)
 
-    def get_all_resolutions(self):
-        icons = get_svg_files(self.icons_folder.text())
-        resolutions = []
-        for icon in icons:
-            resolution = get_icon_resolution(icon)
-            if not resolution in resolutions:
-                resolutions.append(resolution)
-        for reso in resolutions:
-            print(reso)
-
+    def load_boxes(self, path):
+            items = get_all_resolutions(path)
+            for item in items:
+                self.copy_resolution.addItem(item)
+                checkbox = QCheckBox(item)
+                checkbox.stateChanged.connect(lambda state, cb=checkbox: self.checkbox_state_changed(state, cb))
+                self.gridLayout_2.addWidget(checkbox)
+    
     def choose_icons_directory(self):
         dir_name = QFileDialog.getExistingDirectory(self.centralwidget, "Select a Directory")
         if dir_name:
             path = Path(dir_name)
             self.icons_folder.setText(str(path))
+            self.load_boxes(self.icons_folder.text())
             self.loadIcons()
-            self.get_all_resolutions()
-    
+
+    def checkbox_state_changed(self, state, checkbox):
+        item = checkbox.text()
+        if not item in self.selected_items:
+            self.selected_items.append(item)
+        else:
+            self.selected_items.remove(item)
+
     def choose_destination_directory(self):
         dir_name = QFileDialog.getExistingDirectory(self.centralwidget, "Select a Directory")
         if dir_name:
@@ -568,8 +649,8 @@ class Ui_MainWindow(object):
         src_code = self.src_code_folder.text()
         check_all_found = names_to_match
         find_icons_in_files(src_code)
-        resolution_check = self.src_code_resolution.currentText()
-        if resolution_check == "None":
+        resolution_check = self.selected_items
+        if not resolution_check:
             resolution_check = None
         try:
             if not os.path.exists(source_folder):
@@ -600,9 +681,9 @@ class Ui_MainWindow(object):
                 
                 if split_name in names_to_match:
                     relative_path = os.path.relpath(file, source_folder)
-                    icon_resolution = get_icon_resolution(file)
                     if resolution_check:
-                        if icon_resolution == resolution_check:
+                        icon_resolution = get_icon_resolution(file)
+                        if icon_resolution in resolution_check:
                             destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))
                             os.makedirs(destination_subfolder, exist_ok=True)
                             destination_path = os.path.join(destination_subfolder, os.path.basename(file))
@@ -690,15 +771,30 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("Icon compiler", "Icon compiler"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        self.icons_folder_btn.setText(_translate("MainWindow", "Icons folder"))
+        self.label_5.setText(_translate("MainWindow", "placeholder"))
+        self.destination_folder_btn.setText(_translate("MainWindow", "Destination"))
         self.src_code_2.setToolTip(_translate("MainWindow", "<html><head/><body><p>src code</p></body></html>"))
         self.src_code_2.setWhatsThis(_translate("MainWindow", "<html><head/><body><p>src code</p><p><br/></p></body></html>"))
         self.src_code_search.setText(_translate("MainWindow", "src code"))
         self.label.setText(_translate("MainWindow", "Found icon names:"))
         self.src_code_add_btn.setText(_translate("MainWindow", "add icon"))
+
         self.copy_src_code.setText(_translate("MainWindow", "Copy icons"))
         self.label_2.setText(_translate("MainWindow", "Icons in destination folder"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.src_code), _translate("MainWindow", "src_code"))
+        self.search_btn.setText(_translate("MainWindow", "Search"))
+        self.search_btn.setShortcut(_translate("MainWindow", "Return"))
+        self.copy_resolution.setItemText(0, _translate("MainWindow", "None"))
+        self.select_all.setText(_translate("MainWindow", "Select all"))
+        self.image_loader.setText(_translate("MainWindow", "\"Img\""))
+        self.img_name.setText(_translate("MainWindow", ""))
+        self.img_size.setText(_translate("MainWindow", ""))
+        self.label_4.setText(_translate("MainWindow", ""))
+        self.copy_selected_btn.setText(_translate("MainWindow", "Copy selected"))
+        self.label_6.setText(_translate("MainWindow", "Icons in destination folder:"))
+        self.label_3.setText(_translate("MainWindow", "Icons loaded"))
         self.comboBox.setItemText(0, _translate("MainWindow", "10"))
         self.comboBox.setItemText(1, _translate("MainWindow", "25"))
         self.comboBox.setItemText(2, _translate("MainWindow", "50"))
@@ -706,43 +802,21 @@ class Ui_MainWindow(object):
         self.comboBox.setItemText(4, _translate("MainWindow", "200"))
         self.comboBox.setItemText(5, _translate("MainWindow", "500"))
         self.comboBox.setItemText(6, _translate("MainWindow", "1000"))
-        self.src_code_resolution.setItemText(0,  _translate("MainWindow", u"None", None))
-        self.src_code_resolution.setItemText(1,  _translate("MainWindow", u"8x8", None))
-        self.src_code_resolution.setItemText(2,  _translate("MainWindow", u"12x12", None))
-        self.src_code_resolution.setItemText(3,  _translate("MainWindow", u"16x16", None))
-        self.src_code_resolution.setItemText(4,  _translate("MainWindow", u"22x22", None))
-        self.src_code_resolution.setItemText(5,  _translate("MainWindow", u"24x24", None))
-        self.src_code_resolution.setItemText(6,  _translate("MainWindow", u"32x32", None))
-        self.src_code_resolution.setItemText(7,  _translate("MainWindow", u"48x48", None))
-        self.src_code_resolution.setItemText(8,  _translate("MainWindow", u"64x64", None))
-        self.src_code_resolution.setItemText(9,  _translate("MainWindow", u"128x128", None))
-        self.src_code_resolution.setItemText(10,  _translate("MainWindow", u"256x256", None))
-        self.label_3.setText(_translate("MainWindow", "Icons loaded"))
-        self.search_btn.setText(_translate("MainWindow", "Search"))
-        self.img_name.setText(_translate("MainWindow", ""))
-        self.img_size.setText(_translate("MainWindow", ""))
-        self.copy_selected_btn.setText(_translate("MainWindow", "Copy selected"))
-        self.label_6.setText(_translate("MainWindow", "Icons in destination folder"))
-        self.image_loader.setText(_translate("MainWindow", ""))
-        self.label_8.setText(_translate("MainWindow", "selected icons:"))
-        self.select_all.setText(_translate("MainWindow", u"Select all"))
-        self.clear_selected_btn.setText(_translate("MainWindow", u"Clear"))
+        self.comboBox_2.setItemText(0, _translate("MainWindow", "None"))
+        self.comboBox_2.setItemText(1, _translate("MainWindow", "actions"))
+        self.comboBox_2.setItemText(2, _translate("MainWindow", "apps"))
+        self.comboBox_2.setItemText(3, _translate("MainWindow", "emotes"))
+        self.comboBox_2.setItemText(4, _translate("MainWindow", "devices"))
+        self.comboBox_2.setItemText(5, _translate("MainWindow", "categories"))
+        self.comboBox_2.setItemText(6, _translate("MainWindow", "status"))
+
+        self.label_8.setText(_translate("MainWindow", "selected icons"))
+        self.clear_selected_btn.setText(_translate("MainWindow", "Clear"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_3), _translate("MainWindow", "copy"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_2), _translate("MainWindow", "theme gen"))
-        self.icons_folder_btn.setText(_translate("MainWindow", "Icons folder"))
-        self.copy_resolution.setItemText(0, _translate("MainWindow", u"None", None))
-        self.copy_resolution.setItemText(1, _translate("MainWindow", u"8x8", None))
-        self.copy_resolution.setItemText(2, _translate("MainWindow", u"12x12", None))
-        self.copy_resolution.setItemText(3, _translate("MainWindow", u"16x16", None))
-        self.copy_resolution.setItemText(4, _translate("MainWindow", u"22x22", None))
-        self.copy_resolution.setItemText(5, _translate("MainWindow", u"24x24", None))
-        self.copy_resolution.setItemText(6, _translate("MainWindow", u"32x32", None))
-        self.copy_resolution.setItemText(7, _translate("MainWindow", u"48x48", None))
-        self.copy_resolution.setItemText(8, _translate("MainWindow", u"64x64", None))
-        self.copy_resolution.setItemText(9, _translate("MainWindow", u"128x128", None))
-        self.copy_resolution.setItemText(10, _translate("MainWindow", u"256x256", None))
-        self.src_reso_label.setText(_translate("MainWindow", u"Limit icons size"))
-        self.destination_folder_btn.setText(_translate("MainWindow", "Destination"))
+        self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
+        self.actionsettings.setText(_translate("MainWindow", "settings"))
+        self.actionInfo.setText(_translate("MainWindow", "Info/help"))
 
 class MainWindow(QMainWindow):
     def __init__(self):
