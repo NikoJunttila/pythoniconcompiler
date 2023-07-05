@@ -2,7 +2,6 @@ import shutil
 import os
 import glob
 import sys
-import time
 from PIL import Image
 from PyQt6.QtSvg import QSvgRenderer
 
@@ -68,7 +67,6 @@ def find_icons_in_files(folder_path):
             names_to_match.append(file)
             check_all_found.append(file)
             print(file)
-            time.sleep(100/1000)
     return icons
 
 

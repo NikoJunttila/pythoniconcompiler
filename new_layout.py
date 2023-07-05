@@ -46,7 +46,6 @@ def get_icon_resolution(file_path):
                     resolution = f"{width}x{height}"
                     return resolution
     except (IOError, OSError):
-        #print(OSError)
         return None
     
 def get_themes(folder_path, search_term=None):
@@ -242,8 +241,6 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
         MainWindow.resize(894, 754)
-        font = QFont()
-        font.setPointSize(7)
         self.centralwidget = QtWidgets.QWidget(parent=MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.centralwidget)
@@ -267,6 +264,8 @@ class Ui_MainWindow(object):
         self.horizontalLayout.addWidget(self.destination_folder_btn)
         self.verticalLayout_2.addLayout(self.horizontalLayout)
         self.src_code_2 = QtWidgets.QTabWidget(parent=self.centralwidget)
+        self.src_code_2.setMinimumSize(QtCore.QSize(0, 300))
+        self.src_code_2.setBaseSize(QtCore.QSize(0, 1000))
         self.src_code_2.setObjectName("src_code_2")
         self.src_code = QtWidgets.QWidget()
         self.src_code.setObjectName("src_code")
@@ -284,9 +283,6 @@ class Ui_MainWindow(object):
         self.label.setObjectName("label")
         self.gridLayout.addWidget(self.label, 2, 0, 1, 2)
         self.listWidget_2 = QtWidgets.QListWidget(parent=self.src_code)
-        big_font = QFont()
-        big_font.setPointSize(15)
-        self.listWidget_2.setFont(big_font)
         self.listWidget_2.setObjectName("listWidget_2")
         self.gridLayout.addWidget(self.listWidget_2, 3, 0, 1, 2)
         self.src_code_add = InputFieldWidget(self.add_name,parent=self.src_code)
@@ -314,23 +310,21 @@ class Ui_MainWindow(object):
         self.src_code_2.addTab(self.src_code, "")
         self.tab_3 = QtWidgets.QWidget()
         self.tab_3.setObjectName("tab_3")
-        self.widget = QtWidgets.QWidget(parent=self.tab_3)
-        self.widget.setGeometry(QtCore.QRect(0, 10, 235, 56))
-        self.widget.setObjectName("widget")
-        self.gridLayout_3 = QtWidgets.QGridLayout(self.widget)
-        self.gridLayout_3.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout_4 = QtWidgets.QGridLayout(self.tab_3)
+        self.gridLayout_4.setObjectName("gridLayout_4")
+        self.gridLayout_3 = QtWidgets.QGridLayout()
         self.gridLayout_3.setObjectName("gridLayout_3")
         self.search_text = InputFieldWidget(self.loadIcons,parent=self.tab_3)
         self.search_text.setObjectName("search_text")
         self.gridLayout_3.addWidget(self.search_text, 0, 0, 1, 2)
-        self.search_btn = QtWidgets.QPushButton(parent=self.widget)
+        self.search_btn = QtWidgets.QPushButton(parent=self.tab_3)
         self.search_btn.setObjectName("search_btn")
         self.gridLayout_3.addWidget(self.search_btn, 0, 2, 1, 1)
-        self.copy_resolution = QtWidgets.QComboBox(parent=self.widget)
+        self.copy_resolution = QtWidgets.QComboBox(parent=self.tab_3)
         self.copy_resolution.setObjectName("copy_resolution")
         self.copy_resolution.addItem("")
         self.gridLayout_3.addWidget(self.copy_resolution, 1, 0, 1, 1)
-        self.comboBox_2 = QtWidgets.QComboBox(parent=self.widget)
+        self.comboBox_2 = QtWidgets.QComboBox(parent=self.tab_3)
         self.comboBox_2.setObjectName("comboBox_2")
         self.comboBox_2.addItem("")
         self.comboBox_2.addItem("")
@@ -340,57 +334,50 @@ class Ui_MainWindow(object):
         self.comboBox_2.addItem("")
         self.comboBox_2.addItem("")
         self.gridLayout_3.addWidget(self.comboBox_2, 1, 1, 1, 1)
-        self.select_all = QtWidgets.QPushButton(parent=self.widget)
+        self.select_all = QtWidgets.QPushButton(parent=self.tab_3)
         self.select_all.setObjectName("select_all")
         self.gridLayout_3.addWidget(self.select_all, 1, 2, 1, 1)
-        self.widget1 = QtWidgets.QWidget(parent=self.tab_3)
-        self.widget1.setGeometry(QtCore.QRect(300, 10, 261, 471))
-        self.widget1.setObjectName("widget1")
-        self.verticalLayout_4 = QtWidgets.QVBoxLayout(self.widget1)
-        self.verticalLayout_4.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout_4.addLayout(self.gridLayout_3, 0, 0, 1, 1)
+        self.verticalLayout_4 = QtWidgets.QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
-        self.image_loader = QtWidgets.QLabel(parent=self.widget1)
+        self.image_loader = QtWidgets.QLabel(parent=self.tab_3)
         self.image_loader.setObjectName("image_loader")
         self.verticalLayout_4.addWidget(self.image_loader)
-        self.img_name = QtWidgets.QLabel(parent=self.widget1)
+        self.img_name = QtWidgets.QLabel(parent=self.tab_3)
         self.img_name.setObjectName("img_name")
         self.verticalLayout_4.addWidget(self.img_name)
-        self.img_size = QtWidgets.QLabel(parent=self.widget1)
+        self.img_size = QtWidgets.QLabel(parent=self.tab_3)
         self.img_size.setObjectName("img_size")
         self.verticalLayout_4.addWidget(self.img_size)
-        self.label_4 = QtWidgets.QLabel(parent=self.widget1)
+        self.label_4 = QtWidgets.QLabel(parent=self.tab_3)
         self.label_4.setObjectName("label_4")
         self.verticalLayout_4.addWidget(self.label_4)
-        self.copy_selected_btn = QtWidgets.QPushButton(parent=self.widget1)
+        self.copy_selected_btn = QtWidgets.QPushButton(parent=self.tab_3)
         self.copy_selected_btn.setObjectName("copy_selected_btn")
         self.verticalLayout_4.addWidget(self.copy_selected_btn)
-        self.widget2 = QtWidgets.QWidget(parent=self.tab_3)
-        self.widget2.setGeometry(QtCore.QRect(570, 10, 258, 216))
-        self.widget2.setObjectName("widget2")
-        self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.widget2)
-        self.verticalLayout_3.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout_4.addLayout(self.verticalLayout_4, 0, 1, 2, 1)
+        self.verticalLayout_3 = QtWidgets.QVBoxLayout()
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        self.label_6 = QtWidgets.QLabel(parent=self.widget2)
+        self.label_6 = QtWidgets.QLabel(parent=self.tab_3)
         self.label_6.setObjectName("label_6")
         self.verticalLayout_3.addWidget(self.label_6)
         self.listWidget_5 = ListView_Right(parent=self.tab_3)
+        self.listWidget_5.setMinimumSize(QtCore.QSize(0, 500))
+        self.listWidget_5.setBaseSize(QtCore.QSize(0, 0))
         self.listWidget_5.setObjectName("listWidget_5")
         self.verticalLayout_3.addWidget(self.listWidget_5)
-        self.widget3 = QtWidgets.QWidget(parent=self.tab_3)
-        self.widget3.setGeometry(QtCore.QRect(0, 70, 258, 470))
-        self.widget3.setObjectName("widget3")
-        self.verticalLayout_5 = QtWidgets.QVBoxLayout(self.widget3)
-        self.verticalLayout_5.setContentsMargins(0, 0, 0, 0)
+        self.gridLayout_4.addLayout(self.verticalLayout_3, 0, 2, 2, 1)
+        self.verticalLayout_5 = QtWidgets.QVBoxLayout()
         self.verticalLayout_5.setObjectName("verticalLayout_5")
         self.listWidget_3 = ListView_Left(parent=self.tab_3)
         self.listWidget_3.setObjectName("listWidget_3")
         self.verticalLayout_5.addWidget(self.listWidget_3)
         self.formLayout = QtWidgets.QFormLayout()
         self.formLayout.setObjectName("formLayout")
-        self.label_3 = QtWidgets.QLabel(parent=self.widget3)
+        self.label_3 = QtWidgets.QLabel(parent=self.tab_3)
         self.label_3.setObjectName("label_3")
         self.formLayout.setWidget(0, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_3)
-        self.comboBox = QtWidgets.QComboBox(parent=self.widget3)
+        self.comboBox = QtWidgets.QComboBox(parent=self.tab_3)
         self.comboBox.setObjectName("comboBox")
         self.comboBox.addItem("")
         self.comboBox.addItem("")
@@ -400,16 +387,17 @@ class Ui_MainWindow(object):
         self.comboBox.addItem("")
         self.comboBox.addItem("")
         self.formLayout.setWidget(0, QtWidgets.QFormLayout.ItemRole.FieldRole, self.comboBox)
-        self.label_8 = QtWidgets.QLabel(parent=self.widget3)
+        self.label_8 = QtWidgets.QLabel(parent=self.tab_3)
         self.label_8.setObjectName("label_8")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.ItemRole.LabelRole, self.label_8)
-        self.clear_selected_btn = QtWidgets.QPushButton(parent=self.widget3)
+        self.clear_selected_btn = QtWidgets.QPushButton(parent=self.tab_3)
         self.clear_selected_btn.setObjectName("clear_selected_btn")
         self.formLayout.setWidget(1, QtWidgets.QFormLayout.ItemRole.FieldRole, self.clear_selected_btn)
         self.verticalLayout_5.addLayout(self.formLayout)
         self.listWidget_4 = ListView_Left(parent=self.tab_3)
         self.listWidget_4.setObjectName("listWidget_4")
         self.verticalLayout_5.addWidget(self.listWidget_4)
+        self.gridLayout_4.addLayout(self.verticalLayout_5, 1, 0, 1, 1)
         self.src_code_2.addTab(self.tab_3, "")
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
@@ -419,28 +407,36 @@ class Ui_MainWindow(object):
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
         self.statusbar.setObjectName("statusbar")
         MainWindow.setStatusBar(self.statusbar)
-        self.toolBar = QtWidgets.QToolBar(parent=MainWindow)
-        self.toolBar.setObjectName("toolBar")
-        MainWindow.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, self.toolBar)
         self.actionsettings = QtGui.QAction(parent=MainWindow)
         self.actionsettings.setObjectName("actionsettings")
         self.actionInfo = QtGui.QAction(parent=MainWindow)
         self.actionInfo.setObjectName("actionInfo")
-        self.toolBar.addSeparator()
+
         self.retranslateUi(MainWindow)
-        self.src_code_2.setCurrentIndex(0)
+        self.src_code_2.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+
         #other stuff
+        self.img_size.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        self.img_name.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        font = QFont()
+        font.setPointSize(7)
+        big_font = QFont()
+        big_font.setPointSize(15)
+        self.listWidget_2.setFont(big_font)
         self.image_loader.setScaledContents(True)
         placeholder_logo = QPixmap("centria.jpg")
         self.image_loader.setPixmap(placeholder_logo)
+        self.image_loader.setMaximumSize(QSize(250,250))
+        self.image_loader.setMinimumSize(QSize(250,250))
         self.listWidget.setFont(font)
         self.listWidget_3.setFont(font)
         self.label_4.setFont(font)
-        new_font = QFont()
-        new_font.setPointSize(3)
-        self.listWidget_5.setFont(new_font)
+        self.label_5.setMinimumSize(QSize(30,10))
         self.comboBox.setCurrentIndex(1)
+        icon_main = QIcon("16x16/actions/document-preview-archive.png")
+        MainWindow.setWindowIcon(icon_main)
         #connections
         self.src_code_search.clicked.connect(self.choose_src_code_directory)
         self.src_code_add_btn.clicked.connect(self.add_name)
@@ -482,11 +478,11 @@ class Ui_MainWindow(object):
         popup.setWindowTitle("Info Window")
         long_string = '''
         The idea for this app is to make huge icon sets in to smaller sets.
-        Select folder where you have your big icon set (icons folder) and
-        select folder where to copy all the selected icons (Destination).
-        application shows all the icons in icons folder where you can filter for different sizes and names.
+        1. Choose folder where you have big icon set (icons folder).
+        2. Choose folder where to copy all the selected icons (Destination).
+        Application then shows all the icons in icons folder where you can filter for different sizes, categories and names.
         You can also give source code in src_code tab to automatically find icons needed.
-        src code search made for Qt projects and doesnt work if done with `` instead of ""
+        src code search made for Qt projects.
         More options coming later
         '''
         popup.setText(long_string)
@@ -518,7 +514,7 @@ class Ui_MainWindow(object):
             icon_resolution = get_icon_resolution(data)
             self.img_size.setText(icon_resolution)
             self.img_name.setText(file_name)
-            self.label_4.setText(data)
+            #self.label_4.setText(data)
         except Exception as e:
             print("An error occurred: " + str(e))
 
@@ -554,7 +550,7 @@ class Ui_MainWindow(object):
         icons = get_svg_files(path)
         self.listWidget.m_model.clear()
         for index, icon in enumerate(icons):
-            if index >= 100:
+            if index >= 200:
                 break
             item = QStandardItem()
             item.setIcon(QIcon(icon))
@@ -567,7 +563,7 @@ class Ui_MainWindow(object):
         icons = get_svg_files(path)
         self.listWidget_5.m_model.clear()
         for index, icon in enumerate(icons):
-            if index >= 100:
+            if index >= 200:
                 break
             item = QStandardItem()
             item.setIcon(QIcon(icon))
@@ -771,9 +767,9 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
+        MainWindow.setWindowTitle(_translate("MainWindow", "Icon compiler"))
         self.icons_folder_btn.setText(_translate("MainWindow", "Icons folder"))
-        self.label_5.setText(_translate("MainWindow", "placeholder"))
+        self.label_5.setText(_translate("MainWindow", ""))
         self.destination_folder_btn.setText(_translate("MainWindow", "Destination"))
         self.src_code_2.setToolTip(_translate("MainWindow", "<html><head/><body><p>src code</p></body></html>"))
         self.src_code_2.setWhatsThis(_translate("MainWindow", "<html><head/><body><p>src code</p><p><br/></p></body></html>"))
@@ -814,15 +810,12 @@ class Ui_MainWindow(object):
         self.clear_selected_btn.setText(_translate("MainWindow", "Clear"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_3), _translate("MainWindow", "copy"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_2), _translate("MainWindow", "theme gen"))
-        self.toolBar.setWindowTitle(_translate("MainWindow", "toolBar"))
         self.actionsettings.setText(_translate("MainWindow", "settings"))
         self.actionInfo.setText(_translate("MainWindow", "Info/help"))
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-
-        # Create an instance of the UI class
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 

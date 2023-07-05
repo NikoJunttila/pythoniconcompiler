@@ -5,7 +5,7 @@ block_cipher = None
 
 
 a = Analysis(
-    ['PyQtGUI.py'],
+    ['new_layout.py'],
     pathex=[],
     binaries=[],
     datas=[],

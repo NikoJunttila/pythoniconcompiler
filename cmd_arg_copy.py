@@ -3,7 +3,7 @@ import os
 import glob
 import sys
 from PIL import Image
-import time
+from PyQt6.QtSvg import QSvgRenderer
 
 src_code = sys.argv[1]
 icon_source = sys.argv[2]
@@ -15,6 +15,16 @@ except IndexError:
 names_to_match = [] 
 check_all_found = []
 
+
+names_to_match = []
+check_all_found = []
+
+def make_array_resolutions(string):
+    array = string.split(",")
+    for i in range(len(array)):
+        if len(array[i]) < 3:
+            array[i] = f"{array[i]}x{array[i]}"
+    return array
 
 def get_svg_files(folder_path, search_term=None):
     svg_files = []
@@ -60,15 +70,42 @@ def find_icons_in_files(folder_path):
             names_to_match.append(file)
             check_all_found.append(file)
             print(file)
-            time.sleep(100/1000)
     return icons
+
+
+def get_next_character_after_at(string):
+    at_index = string.find('@')
+    if at_index != -1 and at_index < len(string) - 1:
+        return string[at_index + 1]
+    else:
+        return None
 
 def get_icon_resolution(file_path):
     try:
-        with Image.open(file_path) as img:
-            width, height = img.size
-            resolution = f"{width}x{height}"
-            return resolution
+        if file_path.endswith(".svg"):
+            renderer = QSvgRenderer()
+            if renderer.load(file_path):
+                # Get the default size of the SVG file
+                default_size = renderer.defaultSize()
+                resolution = f"{default_size.width()}x{default_size.height()}"
+                return resolution
+            else:
+                return "error"
+        else:
+            with Image.open(file_path) as img:
+                width, height = img.size
+            #lets hope u dont have multiple @ in ur path
+                if "@" in file_path:
+                    divider = get_next_character_after_at(file_path)
+                    if divider == "2" or divider == "3" or divider == "4":
+                        divider = int(divider)
+                        resolution = f"{int(width/divider)}x{int(height/divider)}"
+                    else:
+                        resolution = f"{width}x{height}"
+                    return resolution
+                else: 
+                    resolution = f"{width}x{height}"
+                    return resolution
     except (IOError, OSError):
         #print(OSError)
         return None
@@ -79,7 +116,7 @@ def copyfiles():
     svg_files = get_svg_files(source_folder) 
     index_themes = get_themes(source_folder)  
     find_icons_in_files(src_code)
-
+    needed_resolutions = make_array_resolutions(resolution_check)
 
     try:
         if not os.path.exists(source_folder):
@@ -109,7 +146,7 @@ def copyfiles():
                 relative_path = os.path.relpath(file, source_folder)
                 icon_resolution = get_icon_resolution(file)
                 if resolution_check:
-                    if icon_resolution == resolution_check:
+                    if icon_resolution in needed_resolutions:
                         destination_subfolder = os.path.dirname(os.path.join(destination_folder, relative_path))
                         os.makedirs(destination_subfolder, exist_ok=True)
                         destination_path = os.path.join(destination_subfolder, os.path.basename(file))
@@ -133,4 +170,5 @@ def copyfiles():
             print("found all icons needed!")
     except Exception as e:
         print("An error occurred: " + str(e))
+
 copyfiles()
