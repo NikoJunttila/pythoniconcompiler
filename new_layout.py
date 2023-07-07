@@ -1,9 +1,9 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView,
-    QMessageBox, QWidget, QLineEdit, QVBoxLayout, QCheckBox)
+    QMessageBox, QWidget, QLineEdit, QVBoxLayout, QCheckBox,QListWidget)
 from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QMovie, QAction
-from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool
+from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool,pyqtSignal
 from PyQt6.QtSvg import QSvgRenderer
 from pathlib import Path
 import glob
@@ -61,7 +61,7 @@ def get_svg_files(folder_path, search_term=None):
         svg_files = []
         for root, _, files in os.walk(folder_path):
             for file in files:
-                if file.endswith((".svg", ".png", ".jpg", ".jpeg")):
+                if file.endswith((".svg", ".png", ".jpg", ".jpeg", ".ico")):
                     if search_term is None or search_term.lower() in file.lower():
                         svg_files.append(os.path.join(root, file))
         return svg_files
@@ -193,6 +193,7 @@ class LoadIconsWorker(QRunnable):
         self.ui.showLoadingSpinner(False)
 
 class ListView_Left(QListView):
+    folder_dropped = pyqtSignal(str)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -201,6 +202,24 @@ class ListView_Left(QListView):
         self.setIconSize(QSize(50, 50))
         self.setResizeMode(QListView.ResizeMode.Adjust)
         self.setViewMode(QListView.ViewMode.IconMode)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+
+            for url in event.mimeData().urls():
+                path = url.toLocalFile()
+                if path:
+                    self.folder_dropped.emit(path)
 
 class InputFieldWidget(QWidget):
     def __init__(self, on_enter_pressed=None, parent=None):
@@ -221,6 +240,7 @@ class InputFieldWidget(QWidget):
         return super().eventFilter(obj, event)
 
 class ListView_Right(QListView):
+    folder_dropped = pyqtSignal(str)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.parent = parent
@@ -230,12 +250,57 @@ class ListView_Right(QListView):
         self.setResizeMode(QListView.ResizeMode.Adjust)
         self.setViewMode(QListView.ViewMode.IconMode)
         #self.clicked.connect(self.on_item_clicked)  # Connect the clicked signal to the slot
+        self.setAcceptDrops(True)
+        
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+
+            for url in event.mimeData().urls():
+                path = url.toLocalFile()
+                if path:
+                    #self.addItem(path)
+                    self.folder_dropped.emit(path)
 
     def on_item_clicked(self, index):
         item = self.m_model.itemFromIndex(index)
         if item is not None:
             print("Clicked item data:", item.text())
 
+class ListView(QListWidget):
+    folder_dropped = pyqtSignal(str)
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent = parent
+        self.setResizeMode(QListView.ResizeMode.Adjust)
+        self.setViewMode(QListView.ViewMode.IconMode)
+        #self.clicked.connect(self.on_item_clicked)  # Connect the clicked signal to the slot
+        self.setAcceptDrops(True)
+        
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+
+    def dragMoveEvent(self, event):
+        event.acceptProposedAction()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.setDropAction(Qt.DropAction.CopyAction)
+            event.accept()
+
+            for url in event.mimeData().urls():
+                path = url.toLocalFile()
+                if path:
+                    self.folder_dropped.emit(path)
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
@@ -282,7 +347,7 @@ class Ui_MainWindow(object):
         self.label = QtWidgets.QLabel(parent=self.src_code)
         self.label.setObjectName("label")
         self.gridLayout.addWidget(self.label, 2, 0, 1, 2)
-        self.listWidget_2 = QtWidgets.QListWidget(parent=self.src_code)
+        self.listWidget_2 = ListView(parent=self.src_code)
         self.listWidget_2.setObjectName("listWidget_2")
         self.gridLayout.addWidget(self.listWidget_2, 3, 0, 1, 2)
         self.src_code_add = InputFieldWidget(self.add_name,parent=self.src_code)
@@ -303,7 +368,7 @@ class Ui_MainWindow(object):
         self.label_2 = QtWidgets.QLabel(parent=self.src_code)
         self.label_2.setObjectName("label_2")
         self.verticalLayout.addWidget(self.label_2)
-        self.listWidget = ListView_Right(parent=self.src_code)
+        self.listWidget = ListView_Left(parent=self.src_code)
         self.listWidget.setObjectName("listWidget")
         self.verticalLayout.addWidget(self.listWidget)
         self.horizontalLayout_2.addLayout(self.verticalLayout)
@@ -426,7 +491,7 @@ class Ui_MainWindow(object):
         big_font.setPointSize(15)
         self.listWidget_2.setFont(big_font)
         self.image_loader.setScaledContents(True)
-        placeholder_logo = QPixmap("centria.jpg")
+        placeholder_logo = QPixmap("icons/centria.jpg")
         self.image_loader.setPixmap(placeholder_logo)
         self.image_loader.setMaximumSize(QSize(250,250))
         self.image_loader.setMinimumSize(QSize(250,250))
@@ -435,7 +500,7 @@ class Ui_MainWindow(object):
         self.label_4.setFont(font)
         self.label_5.setMinimumSize(QSize(30,10))
         self.comboBox.setCurrentIndex(1)
-        icon_main = QIcon("16x16/actions/document-preview-archive.png")
+        icon_main = QIcon("icons/16x16/actions/document-preview-archive.png")
         MainWindow.setWindowIcon(icon_main)
         #connections
         self.src_code_search.clicked.connect(self.choose_src_code_directory)
@@ -453,6 +518,10 @@ class Ui_MainWindow(object):
         self.clear_selected_btn.clicked.connect(self.clear_selected)
         self.select_all.clicked.connect(self.select_all_func)
         self.copy_selected_btn.clicked.connect(self.copy_files)
+        self.listWidget_3.folder_dropped.connect(self.on_folder_dropped_icons)
+        self.listWidget.folder_dropped.connect(self.on_folder_dropped_destination)
+        self.listWidget_5.folder_dropped.connect(self.on_folder_dropped_destination)
+        self.listWidget_2.folder_dropped.connect(self.on_folder_dropped_src_code)
 
         self.selected_items = []
 
@@ -460,19 +529,41 @@ class Ui_MainWindow(object):
         self.toolBar.setObjectName("toolBar")
         MainWindow.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, self.toolBar)
 
-        button_action = QAction(QIcon("16x16/actions/help-hint.png"), "info", parent=MainWindow)
+        button_action = QAction(QIcon("icons/16x16/actions/help-hint.png"), "info", parent=MainWindow)
         button_action.setStatusTip("Readme/info")
         button_action.triggered.connect(self.open_help)
         self.toolBar.addAction(button_action)
         self.toolBar.addSeparator()
-        button_action2 = QAction(QIcon("16x16/actions/settings-configure.png"), "settings", parent=MainWindow)
+        button_action2 = QAction(QIcon("icons/16x16/actions/settings-configure.png"), "settings", parent=MainWindow)
         button_action2.setStatusTip("Settings")
         button_action2.triggered.connect(self.toolBar_settings)
         self.toolBar.addAction(button_action2)
 
     def toolBar_settings(self, s):
         print("click", s)
+
+    def on_folder_dropped_icons(self,folder_path):
+        self.icons_folder.setText(str(folder_path))
+        self.load_boxes(self.icons_folder.text())
+        self.loadIcons()
     
+    def on_folder_dropped_destination(self,folder_path):
+        if folder_path:
+            path = Path(folder_path)
+            self.destination_folder.setText(str(path))
+            self.loadIcons_dest(path)
+            self.loadIcons_dest2(path)
+            print(f"Folder dropped: {folder_path}")
+
+    def on_folder_dropped_src_code(self,folder_path):
+        if folder_path:
+            self.listWidget_2.clear()
+            path = Path(folder_path)
+            self.src_code_folder.setText(str(path))
+            find_icons_in_files(folder_path)
+            for icon in names_to_match:
+                self.listWidget_2.addItem(icon)
+
     def open_help(self):
         popup = QMessageBox()
         popup.setWindowTitle("Info Window")
@@ -481,7 +572,7 @@ class Ui_MainWindow(object):
         1. Choose folder where you have big icon set (icons folder).
         2. Choose folder where to copy all the selected icons (Destination).
         Application then shows all the icons in icons folder where you can filter for different sizes, categories and names.
-        You can also give source code in src_code tab to automatically find icons needed.
+        You can also give source code in src code tab to automatically find icons needed.
         src code search made for Qt projects.
         More options coming later
         '''
@@ -489,7 +580,7 @@ class Ui_MainWindow(object):
         popup.exec()
 
     def showLoadingSpinner(self, visible):
-        spinner_path = "spinner_smaller.gif"
+        spinner_path = "icons/spinner_smaller.gif"
         movie = QMovie(spinner_path)
         self.label_5.setMovie(movie)
 
@@ -779,7 +870,7 @@ class Ui_MainWindow(object):
 
         self.copy_src_code.setText(_translate("MainWindow", "Copy icons"))
         self.label_2.setText(_translate("MainWindow", "Icons in destination folder"))
-        self.src_code_2.setTabText(self.src_code_2.indexOf(self.src_code), _translate("MainWindow", "src_code"))
+        self.src_code_2.setTabText(self.src_code_2.indexOf(self.src_code), _translate("MainWindow", "src code"))
         self.search_btn.setText(_translate("MainWindow", "Search"))
         self.search_btn.setShortcut(_translate("MainWindow", "Return"))
         self.copy_resolution.setItemText(0, _translate("MainWindow", "None"))
