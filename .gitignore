@@ -15,5 +15,5 @@ qtdirs.py
 pyqt.py
 output.py
 setup.py
-/16x16
 search-cat.ico
+data.pickle

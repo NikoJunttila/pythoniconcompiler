@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView,
-    QMessageBox, QWidget, QLineEdit, QVBoxLayout, QCheckBox,QListWidget)
+    QMessageBox, QWidget, QLineEdit, QVBoxLayout, QCheckBox,QListWidget, QTableWidgetItem)
 from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QMovie, QAction
 from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool,pyqtSignal
 from PyQt6.QtSvg import QSvgRenderer
@@ -10,8 +10,7 @@ import glob
 import os
 import shutil
 from PIL import Image
-from PyQt6 import QtCore, QtGui, QtWidgets
-
+import pickle
 names_to_match = [] 
 def get_next_character_after_at(string):
     at_index = string.find('@')
@@ -225,8 +224,6 @@ class InputFieldWidget(QWidget):
     def __init__(self, on_enter_pressed=None, parent=None):
         super().__init__(parent)
         self.input_field = QLineEdit(self)
-        #layout = QVBoxLayout(self)
-        #layout.addWidget(self.input_field)
         self.input_field.installEventFilter(self)
 
         self.on_enter_pressed = on_enter_pressed
@@ -282,7 +279,6 @@ class ListView(QListWidget):
         self.parent = parent
         self.setResizeMode(QListView.ResizeMode.Adjust)
         self.setViewMode(QListView.ViewMode.IconMode)
-        #self.clicked.connect(self.on_item_clicked)  # Connect the clicked signal to the slot
         self.setAcceptDrops(True)
         
     def dragEnterEvent(self, event):
@@ -467,6 +463,41 @@ class Ui_MainWindow(object):
         self.tab_2 = QtWidgets.QWidget()
         self.tab_2.setObjectName("tab_2")
         self.src_code_2.addTab(self.tab_2, "")
+        self.verticalLayout_6 = QtWidgets.QVBoxLayout(self.tab_2)
+        self.verticalLayout_6.setObjectName("verticalLayout_6")
+        self.horizontalLayout_3 = QtWidgets.QHBoxLayout()
+        self.horizontalLayout_3.setObjectName("horizontalLayout_3")
+        self.label_9 = QtWidgets.QLabel(parent=self.tab_2)
+        self.label_9.setObjectName("label_9")
+        self.horizontalLayout_3.addWidget(self.label_9)
+        self.lineEdit = QtWidgets.QLineEdit(parent=self.tab_2)
+        self.lineEdit.setObjectName("lineEdit")
+        self.horizontalLayout_3.addWidget(self.lineEdit)
+        self.verticalLayout_6.addLayout(self.horizontalLayout_3)
+        self.label_7 = QtWidgets.QLabel(parent=self.tab_2)
+        self.label_7.setObjectName("label_7")
+        self.verticalLayout_6.addWidget(self.label_7)
+        self.pushButton = QtWidgets.QPushButton(parent=self.tab_2)
+        self.pushButton.setObjectName("pushButton")
+        self.verticalLayout_6.addWidget(self.pushButton)
+        self.tableWidget = QtWidgets.QTableWidget(parent=self.tab_2)
+        self.tableWidget.setObjectName("tableWidget")
+        self.tableWidget.setColumnCount(4)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setVerticalHeaderItem(0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setVerticalHeaderItem(1, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setHorizontalHeaderItem(0, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setHorizontalHeaderItem(1, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setHorizontalHeaderItem(2, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setHorizontalHeaderItem(3, item)
+        self.verticalLayout_6.addWidget(self.tableWidget)
+        self.src_code_2.addTab(self.tab_2, "")
+
         self.verticalLayout_2.addWidget(self.src_code_2)
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(parent=MainWindow)
@@ -476,7 +507,6 @@ class Ui_MainWindow(object):
         self.actionsettings.setObjectName("actionsettings")
         self.actionInfo = QtGui.QAction(parent=MainWindow)
         self.actionInfo.setObjectName("actionInfo")
-
         self.retranslateUi(MainWindow)
         self.src_code_2.setCurrentIndex(1)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -502,6 +532,8 @@ class Ui_MainWindow(object):
         self.comboBox.setCurrentIndex(1)
         icon_main = QIcon("icons/16x16/actions/document-preview-archive.png")
         MainWindow.setWindowIcon(icon_main)
+        self.setup_table()
+
         #connections
         self.src_code_search.clicked.connect(self.choose_src_code_directory)
         self.src_code_add_btn.clicked.connect(self.add_name)
@@ -522,8 +554,11 @@ class Ui_MainWindow(object):
         self.listWidget.folder_dropped.connect(self.on_folder_dropped_destination)
         self.listWidget_5.folder_dropped.connect(self.on_folder_dropped_destination)
         self.listWidget_2.folder_dropped.connect(self.on_folder_dropped_src_code)
+        self.pushButton.clicked.connect(self.save_data)
+        self.tableWidget.cellClicked.connect(self.row_clicked)
 
         self.selected_items = []
+        self.checkboxes = []
 
         self.toolBar = QtWidgets.QToolBar(parent=MainWindow)
         self.toolBar.setObjectName("toolBar")
@@ -541,11 +576,83 @@ class Ui_MainWindow(object):
 
     def toolBar_settings(self, s):
         print("click", s)
+    
+    def save_selection(self):
+        name = self.lineEdit.text()
+        if not name:
+            name = "default"
+        icons_src = self.icons_folder.text()
+        destination_folder = self.destination_folder.text()
+        src_code = self.src_code_folder.text()
+        rowPosition = self.tableWidget.rowCount()
+        self.tableWidget.insertRow(rowPosition)
+        self.tableWidget.setItem(rowPosition , 0, QTableWidgetItem(name))
+        self.tableWidget.setItem(rowPosition , 1, QTableWidgetItem(icons_src))
+        self.tableWidget.setItem(rowPosition , 2, QTableWidgetItem(destination_folder))
+        self.tableWidget.setItem(rowPosition , 3, QTableWidgetItem(src_code))
+
+    def row_clicked(self, row):
+        icon_set = self.tableWidget.item(row, 1)
+        destination = self.tableWidget.item(row, 2)
+        src_code = self.tableWidget.item(row, 3)
+        if destination.text():
+            self.destination_folder.setText(str(destination.text()))
+            self.loadIcons_dest(destination.text())
+            self.loadIcons_dest2(destination.text())
+        if src_code.text():
+            self.listWidget_2.clear()
+            self.src_code_folder.setText(str(src_code.text()))
+            find_icons_in_files(src_code.text())
+            for icon in names_to_match:
+                self.listWidget_2.addItem(icon)
+        if icon_set.text():
+            self.icons_folder.setText(str(icon_set.text()))
+            self.load_boxes()
+
+    def setup_table(self):
+        data = self.load_data_from_pickle("data.pickle")
+        if data is None:
+            return
+        num_rows = len(data)
+        num_cols = len(data[0])
+        self.tableWidget.setRowCount(num_rows)
+        self.tableWidget.setColumnCount(num_cols)
+        
+        for row in range(num_rows):
+            for col in range(num_cols):
+                item = QTableWidgetItem(str(data[row][col]))
+                self.tableWidget.setItem(row, col, item)
+
+    def load_data_from_pickle(self, file_path):
+        try:
+            with open(file_path, 'rb') as file:
+                data = pickle.load(file)
+        except FileNotFoundError:
+            return None
+        return data
+
+    def save_data(self):
+        self.save_selection()
+
+        # Get the current data from the table
+        data = []
+        for row in range(self.tableWidget.rowCount()):
+            row_data = []
+            for col in range(self.tableWidget.columnCount()):
+                item = self.tableWidget.item(row, col)
+                if item is not None:
+                    row_data.append(item.text())
+            data.append(row_data)
+
+        # Save the data to the pickle file
+        with open("data.pickle", "wb") as file:
+            pickle.dump(data, file)
+
 
     def on_folder_dropped_icons(self,folder_path):
         self.icons_folder.setText(str(folder_path))
-        self.load_boxes(self.icons_folder.text())
-        self.loadIcons()
+        #self.loadIcons()
+        self.load_boxes()
     
     def on_folder_dropped_destination(self,folder_path):
         if folder_path:
@@ -679,28 +786,36 @@ class Ui_MainWindow(object):
             worker = LoadIconsWorker(folder_path, search_term, resolution_check, number,categories_check, self)
             QThreadPool.globalInstance().start(worker)
 
-    def load_boxes(self, path):
-            items = get_all_resolutions(path)
+    def load_boxes(self):
+            items = get_all_resolutions(self.icons_folder.text())
+            self.copy_resolution.clear()
+            self.copy_resolution.addItem("None")
+            for checkbox in self.checkboxes:
+                self.gridLayout_2.removeWidget(checkbox)
+                checkbox.deleteLater()
+            self.checkboxes.clear()
             for item in items:
                 self.copy_resolution.addItem(item)
                 checkbox = QCheckBox(item)
                 checkbox.stateChanged.connect(lambda state, cb=checkbox: self.checkbox_state_changed(state, cb))
                 self.gridLayout_2.addWidget(checkbox)
-    
-    def choose_icons_directory(self):
-        dir_name = QFileDialog.getExistingDirectory(self.centralwidget, "Select a Directory")
-        if dir_name:
-            path = Path(dir_name)
-            self.icons_folder.setText(str(path))
-            self.load_boxes(self.icons_folder.text())
-            self.loadIcons()
+                self.checkboxes.append(checkbox)
 
+    
     def checkbox_state_changed(self, state, checkbox):
         item = checkbox.text()
         if not item in self.selected_items:
             self.selected_items.append(item)
         else:
             self.selected_items.remove(item)
+
+    def choose_icons_directory(self):
+        dir_name = QFileDialog.getExistingDirectory(self.centralwidget, "Select a Directory")
+        if dir_name:
+            path = Path(dir_name)
+            self.icons_folder.setText(str(path))
+            #self.loadIcons()
+            self.load_boxes()
 
     def choose_destination_directory(self):
         dir_name = QFileDialog.getExistingDirectory(self.centralwidget, "Select a Directory")
@@ -867,7 +982,6 @@ class Ui_MainWindow(object):
         self.src_code_search.setText(_translate("MainWindow", "src code"))
         self.label.setText(_translate("MainWindow", "Found icon names:"))
         self.src_code_add_btn.setText(_translate("MainWindow", "add icon"))
-
         self.copy_src_code.setText(_translate("MainWindow", "Copy icons"))
         self.label_2.setText(_translate("MainWindow", "Icons in destination folder"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.src_code), _translate("MainWindow", "src code"))
@@ -896,6 +1010,17 @@ class Ui_MainWindow(object):
         self.comboBox_2.setItemText(4, _translate("MainWindow", "devices"))
         self.comboBox_2.setItemText(5, _translate("MainWindow", "categories"))
         self.comboBox_2.setItemText(6, _translate("MainWindow", "status"))
+        self.label_9.setText(_translate("MainWindow", "Name:"))
+        self.label_7.setText(_translate("MainWindow", "name is optional*"))
+        self.pushButton.setText(_translate("MainWindow", "Save current selection"))
+        item = self.tableWidget.horizontalHeaderItem(0)
+        item.setText(_translate("MainWindow", "Name"))
+        item = self.tableWidget.horizontalHeaderItem(1)
+        item.setText(_translate("MainWindow", "icon set folder"))
+        item = self.tableWidget.horizontalHeaderItem(2)
+        item.setText(_translate("MainWindow", "destination folder"))
+        item = self.tableWidget.horizontalHeaderItem(3)
+        item.setText(_translate("MainWindow", "src code folder"))
 
         self.label_8.setText(_translate("MainWindow", "selected icons"))
         self.clear_selected_btn.setText(_translate("MainWindow", "Clear"))
