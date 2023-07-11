@@ -554,7 +554,7 @@ class Ui_MainWindow(object):
         self.listWidget.folder_dropped.connect(self.on_folder_dropped_destination)
         self.listWidget_5.folder_dropped.connect(self.on_folder_dropped_destination)
         self.listWidget_2.folder_dropped.connect(self.on_folder_dropped_src_code)
-        self.pushButton.clicked.connect(self.save_data)
+        self.pushButton.clicked.connect(self.save_selection)
         self.tableWidget.cellClicked.connect(self.row_clicked)
 
         self.selected_items = []
@@ -590,6 +590,10 @@ class Ui_MainWindow(object):
         self.tableWidget.setItem(rowPosition , 1, QTableWidgetItem(icons_src))
         self.tableWidget.setItem(rowPosition , 2, QTableWidgetItem(destination_folder))
         self.tableWidget.setItem(rowPosition , 3, QTableWidgetItem(src_code))
+        delete_button = QtWidgets.QPushButton("Delete")
+        delete_button.clicked.connect(lambda _, r=rowPosition: self.delete_row(r))
+        self.tableWidget.setCellWidget(rowPosition, 4, delete_button)
+        self.save_data()
 
     def row_clicked(self, row):
         icon_set = self.tableWidget.item(row, 1)
@@ -610,18 +614,34 @@ class Ui_MainWindow(object):
             self.load_boxes()
 
     def setup_table(self):
+        # Load data from pickle file
         data = self.load_data_from_pickle("data.pickle")
+
         if data is None:
             return
+
         num_rows = len(data)
-        num_cols = len(data[0])
+        if num_rows == 0:
+            return
+        num_cols = len(data[0]) + 1  # Add 1 for the delete button column
+
+        # Set the number of rows and columns based on the data
         self.tableWidget.setRowCount(num_rows)
         self.tableWidget.setColumnCount(num_cols)
-        
+
+        # Populate the table with data
         for row in range(num_rows):
-            for col in range(num_cols):
+            for col in range(num_cols - 1):  # Exclude the delete button column
                 item = QTableWidgetItem(str(data[row][col]))
                 self.tableWidget.setItem(row, col, item)
+
+            delete_button = QtWidgets.QPushButton("Delete")
+            delete_button.clicked.connect(lambda _, r=row: self.delete_row(r))
+            self.tableWidget.setCellWidget(row, num_cols - 1, delete_button)
+
+    def delete_row(self, row):
+        self.tableWidget.removeRow(row)
+        self.save_data()
 
     def load_data_from_pickle(self, file_path):
         try:
@@ -632,9 +652,6 @@ class Ui_MainWindow(object):
         return data
 
     def save_data(self):
-        self.save_selection()
-
-        # Get the current data from the table
         data = []
         for row in range(self.tableWidget.rowCount()):
             row_data = []
@@ -643,8 +660,6 @@ class Ui_MainWindow(object):
                 if item is not None:
                     row_data.append(item.text())
             data.append(row_data)
-
-        # Save the data to the pickle file
         with open("data.pickle", "wb") as file:
             pickle.dump(data, file)
 
