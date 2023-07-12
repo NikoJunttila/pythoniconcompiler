@@ -482,7 +482,7 @@ class Ui_MainWindow(object):
         self.verticalLayout_6.addWidget(self.pushButton)
         self.tableWidget = QtWidgets.QTableWidget(parent=self.tab_2)
         self.tableWidget.setObjectName("tableWidget")
-        self.tableWidget.setColumnCount(4)
+        self.tableWidget.setColumnCount(5)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget.setVerticalHeaderItem(0, item)
         item = QtWidgets.QTableWidgetItem()
@@ -495,6 +495,8 @@ class Ui_MainWindow(object):
         self.tableWidget.setHorizontalHeaderItem(2, item)
         item = QtWidgets.QTableWidgetItem()
         self.tableWidget.setHorizontalHeaderItem(3, item)
+        item = QtWidgets.QTableWidgetItem()
+        self.tableWidget.setHorizontalHeaderItem(4, item)
         self.verticalLayout_6.addWidget(self.tableWidget)
         self.src_code_2.addTab(self.tab_2, "")
 
@@ -614,7 +616,6 @@ class Ui_MainWindow(object):
             self.load_boxes()
 
     def setup_table(self):
-        # Load data from pickle file
         data = self.load_data_from_pickle("data.pickle")
 
         if data is None:
@@ -625,19 +626,21 @@ class Ui_MainWindow(object):
             return
         num_cols = len(data[0]) + 1  # Add 1 for the delete button column
 
-        # Set the number of rows and columns based on the data
         self.tableWidget.setRowCount(num_rows)
         self.tableWidget.setColumnCount(num_cols)
 
-        # Populate the table with data
         for row in range(num_rows):
-            for col in range(num_cols - 1):  # Exclude the delete button column
+            for col in range(num_cols - 1):
                 item = QTableWidgetItem(str(data[row][col]))
                 self.tableWidget.setItem(row, col, item)
 
             delete_button = QtWidgets.QPushButton("Delete")
             delete_button.clicked.connect(lambda _, r=row: self.delete_row(r))
             self.tableWidget.setCellWidget(row, num_cols - 1, delete_button)
+        
+        header = self.tableWidget.horizontalHeader()
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeMode.Stretch)
+
 
     def delete_row(self, row):
         self.tableWidget.removeRow(row)
@@ -998,7 +1001,7 @@ class Ui_MainWindow(object):
         self.label.setText(_translate("MainWindow", "Found icon names:"))
         self.src_code_add_btn.setText(_translate("MainWindow", "add icon"))
         self.copy_src_code.setText(_translate("MainWindow", "Copy icons"))
-        self.label_2.setText(_translate("MainWindow", "Icons in destination folder"))
+        self.label_2.setText(_translate("MainWindow", "Icons in destination folder:"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.src_code), _translate("MainWindow", "src code"))
         self.search_btn.setText(_translate("MainWindow", "Search"))
         self.search_btn.setShortcut(_translate("MainWindow", "Return"))
@@ -1036,11 +1039,13 @@ class Ui_MainWindow(object):
         item.setText(_translate("MainWindow", "destination folder"))
         item = self.tableWidget.horizontalHeaderItem(3)
         item.setText(_translate("MainWindow", "src code folder"))
+        item = self.tableWidget.horizontalHeaderItem(4)
+        item.setText(_translate("MainWindow", "delete btn"))
 
         self.label_8.setText(_translate("MainWindow", "selected icons"))
         self.clear_selected_btn.setText(_translate("MainWindow", "Clear"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_3), _translate("MainWindow", "copy"))
-        self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_2), _translate("MainWindow", "theme gen"))
+        self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_2), _translate("MainWindow", "saved"))
         self.actionsettings.setText(_translate("MainWindow", "settings"))
         self.actionInfo.setText(_translate("MainWindow", "Info/help"))
 
@@ -1052,6 +1057,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication([])
+    app.setStyleSheet(Path('layout.qss').read_text())
     window = MainWindow()
     window.show()
     app.exec()
