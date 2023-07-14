@@ -19,7 +19,7 @@ check_all_found = []
 def make_array_resolutions(string):
     array = string.split(",")
     for i in range(len(array)):
-        if len(array[i]) < 3:
+        if not "x" in str(array[i]):
             array[i] = f"{array[i]}x{array[i]}"
     return array
 

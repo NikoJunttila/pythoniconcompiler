@@ -1,13 +1,12 @@
-QWidget {
-    background-color: #fff;
+  QWidget{
+    background-color: #270808
   }
   QLabel {
-    color: #464d55;
     font-weight: 600;
   }
   QLineEdit {
     border-radius: 8px;
-    border: 2px solid #9ac3fe;
+    border: 2px solid #e37222;
     padding: 5px 15px;
   }
   
@@ -30,29 +29,27 @@ QWidget {
   QPushButton:hover,
   QPushButton:focus {
     background-color: #0b5ed7;
-    border: 3px solid #9ac3fe;
+    border: 3px solid #e37222;
   }
   QListWidget{
     border-radius: 8px;
-    border: 2px solid #9ac3fe;
+    border: 2px solid #e37222;
   }
   QTabBar::tab {
-    background-color: #f0f0f0;
+    background-color: #e10e49;
     padding: 8px;
     margin-right: 2px;
-    border-color: #9ac3fe;
+    border-color: #e37222;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
 }
 QTabBar::tab:selected {
-    background-color: #dddddd;
+    background-color: #0b5ed7;
 }
 QComboBox {
   padding: 4px;
   border: 1px solid #cccccc;
   border-radius: 4px;
-  background-color: #ffffff;
-  color: #333333;
 }
 
 QComboBox::drop-down {
@@ -78,39 +75,39 @@ QComboBox QAbstractItemView {
   selection-background-color: #dddddd;
 }
 QToolBar {
-  background-color: #f0f0f0;
+  background-color: #e10e49;
   border: none;
   spacing: 1px;
 }
 
 QToolButton {
   padding: 4px;
-  background-color: #dddddd;
+  background-color: #e37222;
   border: none;
   border-radius: 4px;
   color: #333333;
 }
 
 QToolButton:hover {
-  background-color: #cccccc;
+  background-color: blue;
 }
 
 QToolButton:pressed {
-  background-color: #aaaaaa;
+  background-color: #e37222;
 }
 
 QTableWidget {
   background-color: #ffffff;
-  gridline-color: #cccccc;
+  gridline-color: #e37222;
   border-radius: 8px;
-  border: 2px solid #9ac3fe;
+  border: 2px solid #e37222;
 }
 
 QTableWidget QHeaderView {
   background-color: #f0f0f0;
   border: none;
-  border-bottom: 1px solid #cccccc;
-  border-right: 1px solid #cccccc;
+  border-bottom: 1px solid #e37222;
+  border-right: 1px solid #e37222;
 }
 
 QTableWidget QHeaderView::section {
@@ -120,6 +117,6 @@ QTableWidget QHeaderView::section {
 
 QTableWidget QTableWidgetItem {
   padding: 4px;
-  border-bottom: 1px solid #cccccc;
-  border-right: 1px solid #cccccc;
+  border-bottom: 1px solid #e37222;
+  border-right: 1px solid #e37222;
 }

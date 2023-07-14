@@ -11,7 +11,9 @@ import os
 import shutil
 from PIL import Image
 import pickle
+
 names_to_match = [] 
+
 def get_next_character_after_at(string):
     at_index = string.find('@')
     if at_index != -1 and at_index < len(string) - 1:
@@ -561,6 +563,7 @@ class Ui_MainWindow(object):
 
         self.selected_items = []
         self.checkboxes = []
+        self.current_theme = None
 
         self.toolBar = QtWidgets.QToolBar(parent=MainWindow)
         self.toolBar.setObjectName("toolBar")
@@ -573,12 +576,42 @@ class Ui_MainWindow(object):
         self.toolBar.addSeparator()
         button_action2 = QAction(QIcon("icons/16x16/actions/settings-configure.png"), "settings", parent=MainWindow)
         button_action2.setStatusTip("Settings")
-        button_action2.triggered.connect(self.toolBar_settings)
+        button_action2.triggered.connect(self.change_theme)
         self.toolBar.addAction(button_action2)
+        self.load_theme()
 
-    def toolBar_settings(self, s):
-        print("click", s)
-    
+
+    def change_theme(self):
+        if self.current_theme == "dark_theme":
+            app.setStyleSheet(Path('light_theme.qss').read_text())
+            self.current_theme = "light_theme"
+            with open("theme.pickle", "wb") as file:
+                pickle.dump("light_theme", file)
+        elif self.current_theme == "light_theme":
+            app.setStyleSheet(Path('dark_theme.qss').read_text())
+            self.current_theme = "dark_theme"
+            with open("theme.pickle", "wb") as file:
+                pickle.dump("dark_theme", file)
+        else:
+            app.setStyleSheet(Path('dark_theme.qss').read_text())
+            with open("theme.pickle", "wb") as file:
+                pickle.dump("dark_theme", file)
+
+    def load_theme(self):
+        try:
+            with open("theme.pickle", "rb") as file:
+                loaded_string = pickle.load(file)
+                if loaded_string == "dark_theme":
+                    app.setStyleSheet(Path('dark_theme.qss').read_text())
+                    self.current_theme = "dark_theme"
+                else:
+                    app.setStyleSheet(Path('light_theme.qss').read_text())
+                    self.current_theme = "light_theme"
+
+        except FileNotFoundError:
+            app.setStyleSheet(Path('dark_theme.qss').read_text())
+            self.current_theme = "dark_theme"
+
     def save_selection(self):
         name = self.lineEdit.text()
         if not name:
@@ -596,6 +629,7 @@ class Ui_MainWindow(object):
         delete_button.clicked.connect(lambda _, r=rowPosition: self.delete_row(r))
         self.tableWidget.setCellWidget(rowPosition, 4, delete_button)
         self.save_data()
+        self.lineEdit.clear()
 
     def row_clicked(self, row):
         icon_set = self.tableWidget.item(row, 1)
@@ -1057,7 +1091,7 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication([])
-    app.setStyleSheet(Path('layout.qss').read_text())
+    #app.setStyleSheet(Path('light_theme.qss').read_text())
     window = MainWindow()
     window.show()
     app.exec()
