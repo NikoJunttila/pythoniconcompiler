@@ -1,6 +1,3 @@
-  QWidget{
-    background-color: #ffffff
-  }
   QLabel {
     font-weight: 600;
   }
@@ -14,9 +11,6 @@
     border: 2px solid #d0e3ff;
   }
   
-  QLineEdit::placeholder {
-    color: #767e89;
-  }
   QPushButton {
     background-color: #0d6efd;
     color: #fff;
@@ -31,16 +25,15 @@
     background-color: #0b5ed7;
     border: 3px solid #e37222;
   }
+  QListView{
+    border-radius: 8px;
+    border: 2px solid #e37222;
+  }
   QListWidget{
     border-radius: 8px;
     border: 2px solid #e37222;
   }
-  QListView{
-    border-radius: 8px;
-    border: 1px solid #e37222;
-  }
   QTabBar::tab {
-    background-color: #e10e49;
     padding: 8px;
     margin-right: 2px;
     border-color: #e37222;
@@ -79,17 +72,14 @@ QComboBox QAbstractItemView {
   selection-background-color: #dddddd;
 }
 QToolBar {
-  background-color: #e10e49;
   border: none;
   spacing: 1px;
 }
 
 QToolButton {
   padding: 4px;
-  background-color: #e37222;
   border: none;
   border-radius: 4px;
-  color: #333333;
 }
 
 QToolButton:hover {
@@ -101,14 +91,12 @@ QToolButton:pressed {
 }
 
 QTableWidget {
-  background-color: #ffffff;
   gridline-color: #e37222;
   border-radius: 8px;
   border: 2px solid #e37222;
 }
 
 QTableWidget QHeaderView {
-  background-color: #f0f0f0;
   border: none;
   border-bottom: 1px solid #e37222;
   border-right: 1px solid #e37222;

@@ -31,6 +31,10 @@
     background-color: #0b5ed7;
     border: 3px solid #e37222;
   }
+  QListView{
+    border-radius: 8px;
+    border: 2px solid #e37222;
+  }
   QListWidget{
     border-radius: 8px;
     border: 2px solid #e37222;

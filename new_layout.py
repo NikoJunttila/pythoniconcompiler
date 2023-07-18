@@ -111,7 +111,8 @@ class ResolutionWorker(QRunnable):
         super().__init__()
         self.icon = icon
         self.resolutions = resolutions
-    
+
+    @pyqtSlot()
     def run(self):
         resolution = get_icon_resolution(self.icon)
         if resolution not in self.resolutions:
@@ -546,7 +547,7 @@ class Ui_MainWindow(object):
         self.comboBox.currentIndexChanged.connect(self.loadIcons)
         self.copy_src_code.clicked.connect(self.copyfiles)
         self.search_btn.clicked.connect(self.loadIcons)
-        self.copy_resolution.currentIndexChanged.connect(self.loadIcons)
+        #self.copy_resolution.currentIndexChanged.connect(self.loadIcons)
         self.comboBox_2.currentIndexChanged.connect(self.loadIcons)
         self.listWidget_3.clicked.connect(self.on_item_clicked_main)
         self.listWidget_4.clicked.connect(self.delete_item)
@@ -580,9 +581,8 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(button_action2)
         self.load_theme()
 
-
     def change_theme(self):
-        if self.current_theme == "dark_theme":
+        if self.current_theme == "base_theme":
             app.setStyleSheet(Path('light_theme.qss').read_text())
             self.current_theme = "light_theme"
             with open("theme.pickle", "wb") as file:
@@ -593,9 +593,10 @@ class Ui_MainWindow(object):
             with open("theme.pickle", "wb") as file:
                 pickle.dump("dark_theme", file)
         else:
-            app.setStyleSheet(Path('dark_theme.qss').read_text())
+            app.setStyleSheet(Path('base_theme.qss').read_text())
             with open("theme.pickle", "wb") as file:
-                pickle.dump("dark_theme", file)
+                pickle.dump("base_theme", file)
+                self.current_theme = "base_theme"
 
     def load_theme(self):
         try:
@@ -604,9 +605,12 @@ class Ui_MainWindow(object):
                 if loaded_string == "dark_theme":
                     app.setStyleSheet(Path('dark_theme.qss').read_text())
                     self.current_theme = "dark_theme"
-                else:
+                elif loaded_string == "light_theme":
                     app.setStyleSheet(Path('light_theme.qss').read_text())
                     self.current_theme = "light_theme"
+                else:
+                    app.setStyleSheet(Path('base_theme.qss').read_text())
+                    self.current_theme = "base_theme"
 
         except FileNotFoundError:
             app.setStyleSheet(Path('dark_theme.qss').read_text())
@@ -648,6 +652,7 @@ class Ui_MainWindow(object):
         if icon_set.text():
             self.icons_folder.setText(str(icon_set.text()))
             self.load_boxes()
+            self.loadIcons()
 
     def setup_table(self):
         data = self.load_data_from_pickle("data.pickle")
@@ -703,7 +708,7 @@ class Ui_MainWindow(object):
 
     def on_folder_dropped_icons(self,folder_path):
         self.icons_folder.setText(str(folder_path))
-        #self.loadIcons()
+        self.loadIcons()
         self.load_boxes()
     
     def on_folder_dropped_destination(self,folder_path):
@@ -866,7 +871,7 @@ class Ui_MainWindow(object):
         if dir_name:
             path = Path(dir_name)
             self.icons_folder.setText(str(path))
-            #self.loadIcons()
+            self.loadIcons()
             self.load_boxes()
 
     def choose_destination_directory(self):
