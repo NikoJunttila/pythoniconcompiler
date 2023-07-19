@@ -75,7 +75,7 @@ QComboBox QAbstractItemView {
   selection-background-color: #dddddd;
 }
 QToolBar {
-  border: none;
+  border: 2px solid #e37222;
   spacing: 1px;
 }
 
