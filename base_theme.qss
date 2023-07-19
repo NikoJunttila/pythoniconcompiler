@@ -1,3 +1,6 @@
+    QWidget{
+    font-size: 12px;
+  }
   QLabel {
     font-weight: 600;
   }
@@ -26,12 +29,12 @@
     border: 3px solid #e37222;
   }
   QListView{
-    border-radius: 8px;
-    border: 2px solid #e37222;
+    border-radius: 15px;
+    border: 1px solid #e37222;
   }
   QListWidget{
-    border-radius: 8px;
-    border: 2px solid #e37222;
+    border-radius: 15px;
+    border: 1px solid #e37222;
   }
   QTabBar::tab {
     padding: 8px;
@@ -111,4 +114,21 @@ QTableWidget QTableWidgetItem {
   padding: 4px;
   border-bottom: 1px solid #e37222;
   border-right: 1px solid #e37222;
+}
+QTableCornerButton::section {
+    border-top-left-radius: 5px;
+}
+QScrollBar:vertical {
+  width: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+QScrollBar::handle:vertical {
+  min-height: 20px;
+}
+QScrollBar::add-line:vertical,
+QScrollBar::sub-line:vertical,
+QScrollBar::add-page:vertical,
+QScrollBar::sub-page:vertical {
+  height: 10px;
 }

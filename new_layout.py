@@ -1,7 +1,7 @@
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import (
-    QApplication, QMainWindow, QLabel ,QComboBox, QFileDialog, QListView,
-    QMessageBox, QWidget, QLineEdit, QVBoxLayout, QCheckBox,QListWidget, QTableWidgetItem)
+    QApplication, QMainWindow, QFileDialog, QListView,
+    QMessageBox, QWidget, QLineEdit, QCheckBox,QListWidget, QTableWidgetItem)
 from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QMovie, QAction
 from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool,pyqtSignal
 from PyQt6.QtSvg import QSvgRenderer
@@ -239,42 +239,6 @@ class InputFieldWidget(QWidget):
                     self.on_enter_pressed()
         return super().eventFilter(obj, event)
 
-class ListView_Right(QListView):
-    folder_dropped = pyqtSignal(str)
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.parent = parent
-        self.m_model = QStandardItemModel(self)
-        self.setModel(self.m_model)
-        self.setIconSize(QSize(50, 50))
-        self.setResizeMode(QListView.ResizeMode.Adjust)
-        self.setViewMode(QListView.ViewMode.IconMode)
-        #self.clicked.connect(self.on_item_clicked)  # Connect the clicked signal to the slot
-        self.setAcceptDrops(True)
-        
-    def dragEnterEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.acceptProposedAction()
-
-    def dragMoveEvent(self, event):
-        event.acceptProposedAction()
-
-    def dropEvent(self, event):
-        if event.mimeData().hasUrls():
-            event.setDropAction(Qt.DropAction.CopyAction)
-            event.accept()
-
-            for url in event.mimeData().urls():
-                path = url.toLocalFile()
-                if path:
-                    #self.addItem(path)
-                    self.folder_dropped.emit(path)
-
-    def on_item_clicked(self, index):
-        item = self.m_model.itemFromIndex(index)
-        if item is not None:
-            print("Clicked item data:", item.text())
-
 class ListView(QListWidget):
     folder_dropped = pyqtSignal(str)
     def __init__(self, parent=None):
@@ -425,7 +389,7 @@ class Ui_MainWindow(object):
         self.label_6 = QtWidgets.QLabel(parent=self.tab_3)
         self.label_6.setObjectName("label_6")
         self.verticalLayout_3.addWidget(self.label_6)
-        self.listWidget_5 = ListView_Right(parent=self.tab_3)
+        self.listWidget_5 = ListView_Left(parent=self.tab_3)
         self.listWidget_5.setMinimumSize(QtCore.QSize(0, 500))
         self.listWidget_5.setBaseSize(QtCore.QSize(0, 0))
         self.listWidget_5.setObjectName("listWidget_5")
@@ -526,7 +490,7 @@ class Ui_MainWindow(object):
         big_font.setPointSize(15)
         self.listWidget_2.setFont(big_font)
         self.image_loader.setScaledContents(True)
-        placeholder_logo = QPixmap("icons/centria.jpg")
+        placeholder_logo = QPixmap("icons/centria.png")
         self.image_loader.setPixmap(placeholder_logo)
         self.image_loader.setMaximumSize(QSize(250,250))
         self.image_loader.setMinimumSize(QSize(250,250))
@@ -547,7 +511,7 @@ class Ui_MainWindow(object):
         self.comboBox.currentIndexChanged.connect(self.loadIcons)
         self.copy_src_code.clicked.connect(self.copyfiles)
         self.search_btn.clicked.connect(self.loadIcons)
-        #self.copy_resolution.currentIndexChanged.connect(self.loadIcons)
+        self.copy_resolution.currentIndexChanged.connect(self.combobox_loadicons)
         self.comboBox_2.currentIndexChanged.connect(self.loadIcons)
         self.listWidget_3.clicked.connect(self.on_item_clicked_main)
         self.listWidget_4.clicked.connect(self.delete_item)
@@ -565,7 +529,7 @@ class Ui_MainWindow(object):
         self.selected_items = []
         self.checkboxes = []
         self.current_theme = None
-
+        self.init_comboload = False
         self.toolBar = QtWidgets.QToolBar(parent=MainWindow)
         self.toolBar.setObjectName("toolBar")
         MainWindow.addToolBar(QtCore.Qt.ToolBarArea.TopToolBarArea, self.toolBar)
@@ -575,11 +539,15 @@ class Ui_MainWindow(object):
         button_action.triggered.connect(self.open_help)
         self.toolBar.addAction(button_action)
         self.toolBar.addSeparator()
-        button_action2 = QAction(QIcon("icons/16x16/actions/settings-configure.png"), "settings", parent=MainWindow)
+        button_action2 = QAction(QIcon("icons/16x16/apps/preferences-desktop-theme.png"), "settings", parent=MainWindow)
         button_action2.setStatusTip("Settings")
         button_action2.triggered.connect(self.change_theme)
         self.toolBar.addAction(button_action2)
         self.load_theme()
+
+    def combobox_loadicons(self):
+        if not self.init_comboload:
+            self.loadIcons()
 
     def change_theme(self):
         if self.current_theme == "base_theme":
@@ -844,6 +812,7 @@ class Ui_MainWindow(object):
             QThreadPool.globalInstance().start(worker)
 
     def load_boxes(self):
+            self.init_comboload = True
             items = get_all_resolutions(self.icons_folder.text())
             self.copy_resolution.clear()
             self.copy_resolution.addItem("None")
@@ -857,8 +826,8 @@ class Ui_MainWindow(object):
                 checkbox.stateChanged.connect(lambda state, cb=checkbox: self.checkbox_state_changed(state, cb))
                 self.gridLayout_2.addWidget(checkbox)
                 self.checkboxes.append(checkbox)
+            self.init_comboload = False
 
-    
     def checkbox_state_changed(self, state, checkbox):
         item = checkbox.text()
         if not item in self.selected_items:
@@ -881,7 +850,6 @@ class Ui_MainWindow(object):
             self.destination_folder.setText(str(path))
             self.loadIcons_dest(path)
             self.loadIcons_dest2(path)
-
 
     def choose_src_code_directory(self):
         self.listWidget_2.clear()
@@ -1096,7 +1064,6 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication([])
-    #app.setStyleSheet(Path('light_theme.qss').read_text())
     window = MainWindow()
     window.show()
     app.exec()
