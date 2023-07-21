@@ -4,6 +4,7 @@ import glob
 import sys
 from PIL import Image
 from PyQt6.QtSvg import QSvgRenderer
+import copy
 
 src_code = sys.argv[1]
 icon_source = sys.argv[2]
@@ -12,19 +13,16 @@ try:
   resolution_check = sys.argv[4]
 except IndexError:
   resolution_check = None
-names_to_match = [] 
-check_all_found = []
-
-
-names_to_match = []
-check_all_found = []
 
 def make_array_resolutions(string):
-    array = string.split(",")
-    for i in range(len(array)):
-        if not "x" in str(array[i]):
-            array[i] = f"{array[i]}x{array[i]}"
-    return array
+    try:
+        array = string.split(",")
+        for i in range(len(array)):
+            if not "x" in str(array[i]):
+                array[i] = f"{array[i]}x{array[i]}"
+        return array
+    except:
+        print("no string to parse")
 
 def get_svg_files(folder_path, search_term=None):
     svg_files = []
@@ -50,25 +48,38 @@ def find_icons_in_files(folder_path):
     file_paths = glob.glob(os.path.join(folder_path, "**/*.cpp"), recursive=True) + \
                  glob.glob(os.path.join(folder_path, "**/*.cc"), recursive=True) + \
                  glob.glob(os.path.join(folder_path, "**/*.cxx"), recursive=True) + \
-                 glob.glob(os.path.join(folder_path, "**/*.ui"), recursive=True)
+                 glob.glob(os.path.join(folder_path, "**/*.ui"), recursive=True) + \
+                 glob.glob(os.path.join(folder_path, "**/*.py"), recursive=True)
     for file_path in file_paths:
         with open(file_path, 'r') as file:
             source_code = file.read()
             lines = source_code.split('\n')
                 
             for line in lines:
-                #modify this to look for icons in different format
-                if 'QIcon::fromTheme' in line:
-                    icon_name = line.split('::fromTheme("')[1].split('")')[0]
-                    icons.append(icon_name)
-                if 'iconset theme=' in line:
-                    icon_name = line.split('theme="')[1].split('"')[0]
-                    icons.append(icon_name)
+                try:
+                    #modify this to look for icons in different format
+                    if 'QIcon::fromTheme' in line:
+                        icon_name = line.split('::fromTheme("')[1].split('")')[0]
+                        if not icon_name in icons:
+                            icons.append(icon_name)
+                    if 'iconset theme=' in line:
+                        icon_name = line.split('theme="')[1].split('"')[0]
+                        if not icon_name in icons:
+                            icons.append(icon_name)
+                    if 'QIcon' in line:
+                        icon_name = line.split('QIcon("')[1].split('.')[0]
+                        parsed_string = icon_name.split("/")[-1]
+                        if not parsed_string in icons:
+                            icons.append(parsed_string)
+                    if 'QPixmap' in line:
+                        icon_name = line.split('QPixmap("')[1].split('.')[0]
+                        parsed_string = icon_name.split("/")[-1]
+                        if not parsed_string in icons:
+                            icons.append(parsed_string)
+                except:
+                    continue
     print("icons found:")
     for file in icons:
-         if not file in names_to_match:
-            names_to_match.append(file)
-            check_all_found.append(file)
             print(file)
     return icons
 
@@ -115,8 +126,11 @@ def copyfiles():
     destination_folder = icon_destination
     svg_files = get_svg_files(source_folder) 
     index_themes = get_themes(source_folder)  
-    find_icons_in_files(src_code)
-    needed_resolutions = make_array_resolutions(resolution_check)
+    icons = find_icons_in_files(src_code)
+    check_all_found = copy.deepcopy(icons)
+    needed_resolutions = None 
+    if resolution_check:
+        needed_resolutions = make_array_resolutions(resolution_check)
 
     try:
         if not os.path.exists(source_folder):
@@ -142,7 +156,7 @@ def copyfiles():
             file_name = os.path.basename(file)
             split_name = file_name.split(".")[0]
             
-            if split_name in names_to_match:
+            if split_name in icons:
                 relative_path = os.path.relpath(file, source_folder)
                 icon_resolution = get_icon_resolution(file)
                 if resolution_check:

@@ -11,6 +11,7 @@ import os
 import shutil
 from PIL import Image
 import pickle
+import copy
 
 names_to_match = [] 
 
@@ -68,28 +69,40 @@ def get_svg_files(folder_path, search_term=None):
         return svg_files
 
 def find_icons_in_files(folder_path):
-    icons = []
+    #modify this to search for different files
     file_paths = glob.glob(os.path.join(folder_path, "**/*.cpp"), recursive=True) + \
                  glob.glob(os.path.join(folder_path, "**/*.cc"), recursive=True) + \
                  glob.glob(os.path.join(folder_path, "**/*.cxx"), recursive=True) + \
-                 glob.glob(os.path.join(folder_path, "**/*.ui"), recursive=True)
-    #modify this to search for different files
+                 glob.glob(os.path.join(folder_path, "**/*.ui"), recursive=True) + \
+                 glob.glob(os.path.join(folder_path, "**/*.py"), recursive=True)
     for file_path in file_paths:
         with open(file_path, 'r') as file:
             source_code = file.read()
             lines = source_code.split('\n')
                 
             for line in lines:
-                #modify this to look for icons in different format
-                if 'QIcon::fromTheme' in line:
-                    icon_name = line.split('::fromTheme("')[1].split('")')[0]
-                    icons.append(icon_name)
-                if 'iconset theme=' in line:
-                    icon_name = line.split('theme="')[1].split('"')[0]
-                    icons.append(icon_name)
-    for file in icons:
-         if not file in names_to_match:
-            names_to_match.append(file)
+                try:
+                    #modify this to look for icons in different format
+                    if 'QIcon::fromTheme' in line:
+                        icon_name = line.split('::fromTheme("')[1].split('")')[0]
+                        if not icon_name in names_to_match:
+                            names_to_match.append(icon_name)
+                    if 'iconset theme=' in line:
+                        icon_name = line.split('theme="')[1].split('"')[0]
+                        if not icon_name in names_to_match:
+                            names_to_match.append(icon_name)
+                    if 'QIcon' in line:
+                        icon_name = line.split('QIcon("')[1].split('.')[0]
+                        parsed_string = icon_name.split("/")[-1]
+                        if not parsed_string in names_to_match:
+                            names_to_match.append(parsed_string)
+                    if 'QPixmap' in line:
+                        icon_name = line.split('QPixmap("')[1].split('.')[0]
+                        parsed_string = icon_name.split("/")[-1]
+                        if not parsed_string in names_to_match:
+                            names_to_match.append(parsed_string)
+                except:
+                    continue
 
 
 def get_all_resolutions(path):
@@ -540,6 +553,7 @@ class Ui_MainWindow(object):
         self.listWidget_2.folder_dropped.connect(self.on_folder_dropped_src_code)
         self.pushButton.clicked.connect(self.save_selection)
         self.tableWidget.cellClicked.connect(self.row_clicked)
+        self.pushButton_2.clicked.connect(self.load_from_string)
 
         self.selected_items = []
         self.checkboxes = []
@@ -560,6 +574,21 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(button_action2)
         self.load_theme()
 
+
+    def load_from_string(self):
+        input_string = self.textEdit.toPlainText()
+        items = input_string.split(",")  # Split based on comma
+        result = []
+        
+        for item in items:
+            result.extend(item.strip().split())
+
+        self.listWidget_2.clear()
+        for item in result:
+            self.listWidget_2.addItem(item)
+        self.textEdit.clear()
+        self.src_code_2.setCurrentIndex(0)
+            
     def combobox_loadicons(self):
         if not self.init_comboload:
             self.loadIcons()
@@ -889,7 +918,7 @@ class Ui_MainWindow(object):
         svg_files = get_svg_files(source_folder) 
         index_themes = get_themes(source_folder)  
         src_code = self.src_code_folder.text()
-        check_all_found = names_to_match
+        check_all_found = copy.deepcopy(names_to_match)
         find_icons_in_files(src_code)
         resolution_check = self.selected_items
         if not resolution_check:
@@ -1068,7 +1097,7 @@ class Ui_MainWindow(object):
         self.clear_selected_btn.setText(_translate("MainWindow", "Clear"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_3), _translate("MainWindow", "copy"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.tab_2), _translate("MainWindow", "saved"))
-        self.label_10.setText(_translate("MainWindow", "Give big list of item names with , separating each item."))
+        self.label_10.setText(_translate("MainWindow", "Give big list of item names with , or space separating each item."))
         self.pushButton_2.setText(_translate("MainWindow", "Push items"))
         self.src_code_2.setTabText(self.src_code_2.indexOf(self.list_items), _translate("MainWindow", "Copy list"))
         self.actionsettings.setText(_translate("MainWindow", "settings"))

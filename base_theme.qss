@@ -6,7 +6,7 @@
   }
   QLineEdit {
     border-radius: 8px;
-    border: 2px solid #e37222;
+    border: 2px solid #e80c4c;
     padding: 5px 15px;
   }
   
@@ -26,20 +26,20 @@
   QPushButton:hover,
   QPushButton:focus {
     background-color: #0b5ed7;
-    border: 3px solid #e37222;
+    border: 3px solid #e80c4c;
   }
   QListView{
     border-radius: 15px;
-    border: 1px solid #e37222;
+    border: 1px solid #e80c4c;
   }
   QListWidget{
     border-radius: 15px;
-    border: 1px solid #e37222;
+    border: 1px solid #e80c4c;
   }
   QTabBar::tab {
     padding: 8px;
     margin-right: 2px;
-    border-color: #e37222;
+    border-color: #e80c4c;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
 }
@@ -75,7 +75,7 @@ QComboBox QAbstractItemView {
   selection-background-color: #dddddd;
 }
 QToolBar {
-  border: 2px solid #e37222;
+  border: 1px solid #e80c4c;
   spacing: 1px;
 }
 
@@ -94,15 +94,15 @@ QToolButton:pressed {
 }
 
 QTableWidget {
-  gridline-color: #e37222;
+  gridline-color: #e80c4c;
   border-radius: 8px;
-  border: 2px solid #e37222;
+  border: 2px solid #e80c4c;
 }
 
 QTableWidget QHeaderView {
   border: none;
-  border-bottom: 1px solid #e37222;
-  border-right: 1px solid #e37222;
+  border-bottom: 1px solid #e80c4c;
+  border-right: 1px solid #e80c4c;
 }
 
 QTableWidget QHeaderView::section {
@@ -112,8 +112,8 @@ QTableWidget QHeaderView::section {
 
 QTableWidget QTableWidgetItem {
   padding: 4px;
-  border-bottom: 1px solid #e37222;
-  border-right: 1px solid #e37222;
+  border-bottom: 1px solid #e80c4c;
+  border-right: 1px solid #e80c4c;
 }
 QTableCornerButton::section {
     border-top-left-radius: 5px;
