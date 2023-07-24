@@ -601,8 +601,8 @@ class Ui_MainWindow(object):
                     self.current_theme = "base_theme"
         except:
             dlg = QMessageBox()
-            dlg.setWindowTitle("copied icons")
-            dlg.setText("Found all icons needed!")
+            dlg.setWindowTitle("error")
+            dlg.setText("Error loading theme")
             dlg.exec()
 
     def load_theme(self):
@@ -620,10 +620,7 @@ class Ui_MainWindow(object):
                     self.current_theme = "base_theme"
 
         except FileNotFoundError:
-            dlg = QMessageBox()
-            dlg.setWindowTitle("copied icons")
-            dlg.setText("Found all icons needed!")
-            dlg.exec()
+            print("error loading theme")
 
     def save_selection(self):
         name = self.lineEdit.text()
@@ -644,23 +641,24 @@ class Ui_MainWindow(object):
         self.save_data()
         self.lineEdit.clear()
 
-    def row_clicked(self, row):
-        icon_set = self.tableWidget.item(row, 1)
-        destination = self.tableWidget.item(row, 2)
-        src_code = self.tableWidget.item(row, 3)
-        if destination.text():
-            self.destination_folder.setText(str(destination.text()))
-            self.loadIcons_dest(destination.text())
-            self.loadIcons_dest2(destination.text())
-        if src_code.text():
-            self.listWidget_2.clear()
-            self.src_code_folder.setText(str(src_code.text()))
-            find_icons_in_files(src_code.text())
-            for icon in names_to_match:
-                self.listWidget_2.addItem(icon)
-        if icon_set.text():
-            self.icons_folder.setText(str(icon_set.text()))
-            self.initLoadWithResoandIcons()
+    def row_clicked(self, row, col):
+        if col < 1:
+            icon_set = self.tableWidget.item(row, 1)
+            destination = self.tableWidget.item(row, 2)
+            src_code = self.tableWidget.item(row, 3)
+            if destination.text():
+                self.destination_folder.setText(str(destination.text()))
+                self.loadIcons_dest(destination.text())
+                self.loadIcons_dest2(destination.text())
+            if src_code.text():
+                self.listWidget_2.clear()
+                self.src_code_folder.setText(str(src_code.text()))
+                find_icons_in_files(src_code.text())
+                for icon in names_to_match:
+                    self.listWidget_2.addItem(icon)
+            if icon_set.text():
+                self.icons_folder.setText(str(icon_set.text()))
+                self.initLoadWithResoandIcons()
 
     def setup_table(self):
         data = self.load_data_from_pickle("data.pickle")
@@ -775,7 +773,7 @@ class Ui_MainWindow(object):
         2. Choose folder where to copy all the selected icons (Destination).
         Application then shows all the icons in icons folder where you can filter for different sizes, categories and names.
         You can also give source code in src code tab to automatically find icons needed.
-        src code search made for Qt projects.
+        src code search made for Qt cpp projects and partially PyQt.
         More options coming later
         '''
         popup.setText(long_string)
