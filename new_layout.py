@@ -769,6 +769,7 @@ class Ui_MainWindow(object):
         popup.setWindowTitle("Info Window")
         long_string = '''
         The idea for this app is to make huge icon sets in to smaller sets.
+        You can either drag and drop folder to corrects lists or choose with file explorer
         1. Choose folder where you have big icon set (icons folder).
         2. Choose folder where to copy all the selected icons (Destination).
         Application then shows all the icons in icons folder where you can filter for different sizes, categories and names.
