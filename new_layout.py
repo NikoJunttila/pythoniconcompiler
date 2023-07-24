@@ -50,6 +50,15 @@ def get_icon_resolution(file_path):
     except (IOError, OSError):
         return None
     
+def get_all_resolutions(path):
+    icons = get_svg_files(path)
+    resolutions = []
+    
+    for icon in icons:
+        resolution = get_icon_resolution(icon)
+        if resolution not in resolutions:
+            resolutions.append(resolution)
+    return resolutions
 def get_themes(folder_path, search_term=None):
     themes = []
     for root, _, files in os.walk(folder_path):
@@ -105,31 +114,6 @@ def find_icons_in_files(folder_path):
                     continue
 
 
-def get_all_resolutions(path):
-    icons = get_svg_files(path)
-    resolutions = []
-    
-    thread_pool = QThreadPool.globalInstance()
-    for icon in icons:
-        worker = ResolutionWorker(icon, resolutions)
-        worker.setAutoDelete(True)
-        thread_pool.start(worker)
-    
-    thread_pool.waitForDone()
-    
-    return resolutions
-
-class ResolutionWorker(QRunnable):
-    def __init__(self, icon, resolutions):
-        super().__init__()
-        self.icon = icon
-        self.resolutions = resolutions
-
-    @pyqtSlot()
-    def run(self):
-        resolution = get_icon_resolution(self.icon)
-        if resolution not in self.resolutions:
-            self.resolutions.append(resolution)
 
 class LoadIconsWorker(QRunnable):
     def __init__(self, folder_path, search_term, resolution_check, number,categories_check, ui):
@@ -574,10 +558,13 @@ class Ui_MainWindow(object):
         self.toolBar.addAction(button_action2)
         self.load_theme()
 
-
+    def remove_quotes(self,input_string):
+        return input_string.replace('"', '').replace("'", '')
+    
     def load_from_string(self):
         input_string = self.textEdit.toPlainText()
-        items = input_string.split(",")  # Split based on comma
+        result_string = self.remove_quotes(input_string)
+        items = result_string.split(",")  # Split based on comma
         result = []
         
         for item in items:
@@ -586,29 +573,37 @@ class Ui_MainWindow(object):
         self.listWidget_2.clear()
         for item in result:
             self.listWidget_2.addItem(item)
+            names_to_match.append(item)
         self.textEdit.clear()
         self.src_code_2.setCurrentIndex(0)
             
     def combobox_loadicons(self):
-        if not self.init_comboload:
+        if self.init_comboload:
+            print("loaded combobox reset stuff")
             self.loadIcons()
 
     def change_theme(self):
-        if self.current_theme == "base_theme":
-            app.setStyleSheet(Path('light_theme.qss').read_text())
-            self.current_theme = "light_theme"
-            with open("theme.pickle", "wb") as file:
-                pickle.dump("light_theme", file)
-        elif self.current_theme == "light_theme":
-            app.setStyleSheet(Path('dark_theme.qss').read_text())
-            self.current_theme = "dark_theme"
-            with open("theme.pickle", "wb") as file:
-                pickle.dump("dark_theme", file)
-        else:
-            app.setStyleSheet(Path('base_theme.qss').read_text())
-            with open("theme.pickle", "wb") as file:
-                pickle.dump("base_theme", file)
-                self.current_theme = "base_theme"
+        try:
+            if self.current_theme == "base_theme":
+                app.setStyleSheet(Path('light_theme.qss').read_text())
+                self.current_theme = "light_theme"
+                with open("theme.pickle", "wb") as file:
+                    pickle.dump("light_theme", file)
+            elif self.current_theme == "light_theme":
+                app.setStyleSheet(Path('dark_theme.qss').read_text())
+                self.current_theme = "dark_theme"
+                with open("theme.pickle", "wb") as file:
+                    pickle.dump("dark_theme", file)
+            else:
+                app.setStyleSheet(Path('base_theme.qss').read_text())
+                with open("theme.pickle", "wb") as file:
+                    pickle.dump("base_theme", file)
+                    self.current_theme = "base_theme"
+        except:
+            dlg = QMessageBox()
+            dlg.setWindowTitle("copied icons")
+            dlg.setText("Found all icons needed!")
+            dlg.exec()
 
     def load_theme(self):
         try:
@@ -625,8 +620,10 @@ class Ui_MainWindow(object):
                     self.current_theme = "base_theme"
 
         except FileNotFoundError:
-            app.setStyleSheet(Path('dark_theme.qss').read_text())
-            self.current_theme = "dark_theme"
+            dlg = QMessageBox()
+            dlg.setWindowTitle("copied icons")
+            dlg.setText("Found all icons needed!")
+            dlg.exec()
 
     def save_selection(self):
         name = self.lineEdit.text()
@@ -663,8 +660,7 @@ class Ui_MainWindow(object):
                 self.listWidget_2.addItem(icon)
         if icon_set.text():
             self.icons_folder.setText(str(icon_set.text()))
-            self.load_boxes()
-            self.loadIcons()
+            self.initLoadWithResoandIcons()
 
     def setup_table(self):
         data = self.load_data_from_pickle("data.pickle")
@@ -675,7 +671,7 @@ class Ui_MainWindow(object):
         num_rows = len(data)
         if num_rows == 0:
             return
-        num_cols = len(data[0]) + 1  # Add 1 for the delete button column
+        num_cols = len(data[0]) + 1 
 
         self.tableWidget.setRowCount(num_rows)
         self.tableWidget.setColumnCount(num_cols)
@@ -717,11 +713,42 @@ class Ui_MainWindow(object):
         with open("data.pickle", "wb") as file:
             pickle.dump(data, file)
 
+    def initLoadWithResoandIcons(self):
+        self.init_comboload = False
+        search_term = self.search_text.input_field.text()
+        folder_path = self.icons_folder.text()
+        resolution_check = self.copy_resolution.currentText()
+        categories_check = self.comboBox_2.currentText()
+        if resolution_check == "None":
+            resolution_check = None
+        if categories_check == "None":
+            categories_check = None
+        if len(folder_path) > 2:
+            if not os.path.exists(folder_path):
+                return
+            items = get_all_resolutions(self.icons_folder.text())
+            self.copy_resolution.clear()
+            self.copy_resolution.addItem("None")
+            for checkbox in self.checkboxes:
+                self.gridLayout_2.removeWidget(checkbox)
+                checkbox.deleteLater()
+            self.checkboxes.clear()
+            for item in items:
+                self.copy_resolution.addItem(item)
+                checkbox = QCheckBox(item)
+                checkbox.stateChanged.connect(lambda state, cb=checkbox: self.checkbox_state_changed(state, cb))
+                self.gridLayout_2.addWidget(checkbox)
+                self.checkboxes.append(checkbox)
+            
+            number = int(self.comboBox.currentText())
+            worker = LoadIconsWorker(folder_path, search_term, resolution_check, number,categories_check, self)
+            QThreadPool.globalInstance().start(worker)
+            self.init_comboload = True
+
 
     def on_folder_dropped_icons(self,folder_path):
         self.icons_folder.setText(str(folder_path))
-        self.loadIcons()
-        self.load_boxes()
+        self.initLoadWithResoandIcons()
     
     def on_folder_dropped_destination(self,folder_path):
         if folder_path:
@@ -729,7 +756,6 @@ class Ui_MainWindow(object):
             self.destination_folder.setText(str(path))
             self.loadIcons_dest(path)
             self.loadIcons_dest2(path)
-            print(f"Folder dropped: {folder_path}")
 
     def on_folder_dropped_src_code(self,folder_path):
         if folder_path:
@@ -855,23 +881,6 @@ class Ui_MainWindow(object):
             worker = LoadIconsWorker(folder_path, search_term, resolution_check, number,categories_check, self)
             QThreadPool.globalInstance().start(worker)
 
-    def load_boxes(self):
-            self.init_comboload = True
-            items = get_all_resolutions(self.icons_folder.text())
-            self.copy_resolution.clear()
-            self.copy_resolution.addItem("None")
-            for checkbox in self.checkboxes:
-                self.gridLayout_2.removeWidget(checkbox)
-                checkbox.deleteLater()
-            self.checkboxes.clear()
-            for item in items:
-                self.copy_resolution.addItem(item)
-                checkbox = QCheckBox(item)
-                checkbox.stateChanged.connect(lambda state, cb=checkbox: self.checkbox_state_changed(state, cb))
-                self.gridLayout_2.addWidget(checkbox)
-                self.checkboxes.append(checkbox)
-            self.init_comboload = False
-
     def checkbox_state_changed(self, state, checkbox):
         item = checkbox.text()
         if not item in self.selected_items:
@@ -884,8 +893,7 @@ class Ui_MainWindow(object):
         if dir_name:
             path = Path(dir_name)
             self.icons_folder.setText(str(path))
-            self.loadIcons()
-            self.load_boxes()
+            self.initLoadWithResoandIcons()
 
     def choose_destination_directory(self):
         dir_name = QFileDialog.getExistingDirectory(self.centralwidget, "Select a Directory")
@@ -917,9 +925,13 @@ class Ui_MainWindow(object):
         destination_folder = self.destination_folder.text()
         svg_files = get_svg_files(source_folder) 
         index_themes = get_themes(source_folder)  
-        src_code = self.src_code_folder.text()
         check_all_found = copy.deepcopy(names_to_match)
-        find_icons_in_files(src_code)
+        total_items = self.listWidget_2.count()
+        namesToCheck = []
+        for index in range(total_items):
+            item = self.listWidget_2.item(index)
+            item_text = item.text()
+            namesToCheck.append(item_text)
         resolution_check = self.selected_items
         if not resolution_check:
             resolution_check = None
@@ -950,7 +962,7 @@ class Ui_MainWindow(object):
                 file_name = os.path.basename(file)
                 split_name = file_name.split(".")[0]
                 
-                if split_name in names_to_match:
+                if split_name in namesToCheck:
                     relative_path = os.path.relpath(file, source_folder)
                     if resolution_check:
                         icon_resolution = get_icon_resolution(file)
