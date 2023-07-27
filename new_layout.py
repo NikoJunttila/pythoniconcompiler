@@ -69,14 +69,17 @@ class GetResolutionsWorker(QThread):
     
 
 def get_all_resolutions(path):
-    icons = get_svg_files(path)
-    resolutions = []
-    
-    for icon in icons:
-        resolution = get_icon_resolution(icon)
-        if resolution not in resolutions:
-            resolutions.append(resolution)
-    return resolutions
+    try:
+        icons = get_svg_files(path)
+        resolutions = []
+        
+        for icon in icons:
+            resolution = get_icon_resolution(icon)
+            if resolution not in resolutions:
+                resolutions.append(resolution)
+        return resolutions
+    except:
+        print("error")
 
 def get_themes(folder_path, search_term=None):
     themes = []
@@ -596,7 +599,6 @@ class Ui_MainWindow(object):
             
     def combobox_loadicons(self):
         if self.init_comboload:
-            print("loaded combobox reset stuff")
             self.loadIcons()
 
     def change_theme(self):
@@ -730,7 +732,6 @@ class Ui_MainWindow(object):
             pickle.dump(data, file)
 
     def initLoadWithResoandIcons(self):
-        self.init_comboload = False
         search_term = self.search_text.input_field.text()
         folder_path = self.icons_folder.text()
         resolution_check = self.copy_resolution.currentText()
@@ -742,19 +743,22 @@ class Ui_MainWindow(object):
         if len(folder_path) > 2:
             if not os.path.exists(folder_path):
                 return
-            if hasattr(self, 'worker') and self.worker.isRunning():
-                self.worker.stop()
-                
-            self.worker = GetResolutionsWorker(folder_path, self)
-            self.worker.resolutions_ready.connect(self.update_resolutions)
-            self.worker.start()
+            try: 
+                if hasattr(self, 'worker') and self.worker.isRunning():
+                    self.worker.stop()
+                    
+                self.worker = GetResolutionsWorker(folder_path, self)
+                self.worker.resolutions_ready.connect(self.update_resolutions)
+                self.worker.start()
 
-            number = int(self.comboBox.currentText())
-            worker2 = LoadIconsWorker(folder_path, search_term, resolution_check, number,categories_check, self)
-            QThreadPool.globalInstance().start(worker2)
-            self.init_comboload = True
+                number = int(self.comboBox.currentText())
+                worker2 = LoadIconsWorker(folder_path, search_term, resolution_check, number,categories_check, self)
+                QThreadPool.globalInstance().start(worker2)
+            except:
+                print("failed to load")
 
     def update_resolutions(self, resolutions):
+        self.init_comboload = False
         self.copy_resolution.clear()
         self.copy_resolution.addItem("None")
         for checkbox in self.checkboxes:
@@ -768,6 +772,7 @@ class Ui_MainWindow(object):
             checkbox.stateChanged.connect(lambda state, cb=checkbox: self.checkbox_state_changed(state, cb))
             self.gridLayout_2.addWidget(checkbox)
             self.checkboxes.append(checkbox)
+        self.init_comboload = True
 
     def closeEvent(self, event):
         # Ensure the worker thread is stopped when the GUI is closed
