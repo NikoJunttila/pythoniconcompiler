@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QFileDialog, QListView,
     QMessageBox, QWidget, QLineEdit, QCheckBox,QListWidget, QTableWidgetItem)
 from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QMovie, QAction
-from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool,pyqtSignal
+from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool,pyqtSignal, QThread
 from PyQt6.QtSvg import QSvgRenderer
 from pathlib import Path
 import glob
@@ -49,7 +49,25 @@ def get_icon_resolution(file_path):
                     return resolution
     except (IOError, OSError):
         return None
+class GetResolutionsWorker(QThread):
+    resolutions_ready = pyqtSignal(list)
+
+    def __init__(self, path, ui):
+        super().__init__()
+        self.ui = ui
+        self.path = path
+
+    def run(self):
+        self.ui.showLoadingSpinnerReso(True)
+        resolutions = get_all_resolutions(self.path)
+        self.resolutions_ready.emit(resolutions)
+        self.ui.showLoadingSpinnerReso(False)
+
+    def stop(self):
+        self.quit()
+        self.wait()
     
+
 def get_all_resolutions(path):
     icons = get_svg_files(path)
     resolutions = []
@@ -59,6 +77,7 @@ def get_all_resolutions(path):
         if resolution not in resolutions:
             resolutions.append(resolution)
     return resolutions
+
 def get_themes(folder_path, search_term=None):
     themes = []
     for root, _, files in os.walk(folder_path):
@@ -112,8 +131,6 @@ def find_icons_in_files(folder_path):
                             names_to_match.append(parsed_string)
                 except:
                     continue
-
-
 
 class LoadIconsWorker(QRunnable):
     def __init__(self, folder_path, search_term, resolution_check, number,categories_check, ui):
@@ -651,6 +668,7 @@ class Ui_MainWindow(object):
                 self.loadIcons_dest(destination.text())
                 self.loadIcons_dest2(destination.text())
             if src_code.text():
+                names_to_match.clear()
                 self.listWidget_2.clear()
                 self.src_code_folder.setText(str(src_code.text()))
                 find_icons_in_files(src_code.text())
@@ -724,25 +742,38 @@ class Ui_MainWindow(object):
         if len(folder_path) > 2:
             if not os.path.exists(folder_path):
                 return
-            items = get_all_resolutions(self.icons_folder.text())
-            self.copy_resolution.clear()
-            self.copy_resolution.addItem("None")
-            for checkbox in self.checkboxes:
-                self.gridLayout_2.removeWidget(checkbox)
-                checkbox.deleteLater()
-            self.checkboxes.clear()
-            for item in items:
-                self.copy_resolution.addItem(item)
-                checkbox = QCheckBox(item)
-                checkbox.stateChanged.connect(lambda state, cb=checkbox: self.checkbox_state_changed(state, cb))
-                self.gridLayout_2.addWidget(checkbox)
-                self.checkboxes.append(checkbox)
-            
+            if hasattr(self, 'worker') and self.worker.isRunning():
+                self.worker.stop()
+                
+            self.worker = GetResolutionsWorker(folder_path, self)
+            self.worker.resolutions_ready.connect(self.update_resolutions)
+            self.worker.start()
+
             number = int(self.comboBox.currentText())
-            worker = LoadIconsWorker(folder_path, search_term, resolution_check, number,categories_check, self)
-            QThreadPool.globalInstance().start(worker)
+            worker2 = LoadIconsWorker(folder_path, search_term, resolution_check, number,categories_check, self)
+            QThreadPool.globalInstance().start(worker2)
             self.init_comboload = True
 
+    def update_resolutions(self, resolutions):
+        self.copy_resolution.clear()
+        self.copy_resolution.addItem("None")
+        for checkbox in self.checkboxes:
+            self.gridLayout_2.removeWidget(checkbox)
+            checkbox.deleteLater()
+        self.checkboxes.clear()
+
+        for item in resolutions:
+            self.copy_resolution.addItem(item)
+            checkbox = QCheckBox(item)
+            checkbox.stateChanged.connect(lambda state, cb=checkbox: self.checkbox_state_changed(state, cb))
+            self.gridLayout_2.addWidget(checkbox)
+            self.checkboxes.append(checkbox)
+
+    def closeEvent(self, event):
+        # Ensure the worker thread is stopped when the GUI is closed
+        if hasattr(self, 'worker') and self.worker.isRunning():
+            self.worker.stop()
+        event.accept()
 
     def on_folder_dropped_icons(self,folder_path):
         self.icons_folder.setText(str(folder_path))
@@ -757,6 +788,7 @@ class Ui_MainWindow(object):
 
     def on_folder_dropped_src_code(self,folder_path):
         if folder_path:
+            names_to_match.clear()
             self.listWidget_2.clear()
             path = Path(folder_path)
             self.src_code_folder.setText(str(path))
@@ -780,16 +812,22 @@ class Ui_MainWindow(object):
         popup.setText(long_string)
         popup.exec()
 
-    def showLoadingSpinner(self, visible):
-        spinner_path = "icons/spinner_smaller.gif"
-        movie = QMovie(spinner_path)
-        self.label_5.setMovie(movie)
+    def showLoadingSpinnerReso(self, visible):
+        loading_logo = QPixmap("icons/loading-cat.gif")
 
         if visible:
-            movie.start()
+            self.image_loader.setPixmap(loading_logo)
+        else:
+            placeholder_logo = QPixmap("icons/centria.png")
+            self.image_loader.setPixmap(placeholder_logo)
+
+    def showLoadingSpinner(self, visible):
+        spinner_path = QPixmap("icons/spinner_smaller.gif")
+
+        if visible:
+            self.label_5.setPixmap(spinner_path)
             self.label_5.show()
         else:
-            movie.stop()
             self.label_5.hide()
 
     def on_item_clicked_main(self, index):

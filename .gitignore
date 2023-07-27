@@ -17,3 +17,5 @@ output.py
 setup.py
 search-cat.ico
 data.pickle
+cmd_arg_copy.spec
+auto_dest_copy.spec
