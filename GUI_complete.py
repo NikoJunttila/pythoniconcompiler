@@ -70,16 +70,33 @@ class GetResolutionsWorker(QThread):
 
 def get_all_resolutions(path):
     try:
-        icons = get_svg_files(path)
+        themes = get_themes(path)
         resolutions = []
-        
-        for icon in icons:
-            resolution = get_icon_resolution(icon)
-            if resolution not in resolutions:
-                resolutions.append(resolution)
-        return resolutions
-    except:
-        print("error")
+        if themes:
+            for file_path in themes:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    source_code = file.read()
+                    lines = source_code.split('\n')
+                    for line in lines:
+                        try:
+                            if 'Size=' in line:
+                                reso = line.split("=")
+                                resolution = reso[1]
+                                if not resolution in resolutions:
+                                    resolutions.append(resolution)
+                        except:
+                            continue
+                    print(resolutions)
+                    return resolutions
+        else:
+            icons = get_svg_files(path)
+            for icon in icons:
+                resolution = get_icon_resolution(icon)
+                if resolution not in resolutions:
+                    resolutions.append(resolution)
+            return resolutions
+    except Exception as e:
+        print("An error occurred: " + str(e))
 
 def get_themes(folder_path, search_term=None):
     themes = []
