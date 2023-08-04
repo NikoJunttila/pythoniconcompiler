@@ -1,3 +1,17 @@
+"""****************************************************************
+*
+* File   : GUI_complete.py
+* Author : NikoJunttila <89527972+NikoJunttila@users.noreply.github.com>
+* 
+*
+* Copyright (C) 2023 Centria University of Applied Sciences.
+* All rights reserved.
+*
+* Unauthorized copying of this file, via any medium is strictly
+* prohibited.
+*
+****************************************************************"""
+
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QFileDialog, QListView,
@@ -81,7 +95,7 @@ def get_all_resolutions(path):
                         try:
                             if 'Size=' in line:
                                 reso = line.split("=")
-                                resolution = reso[1]
+                                resolution = reso[1] + "x" + reso[1]
                                 if not resolution in resolutions:
                                     resolutions.append(resolution)
                         except:
