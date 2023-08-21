@@ -1,8 +1,8 @@
-"""****************************************************************
+"""*************************************************************
 *
 * File   : GUI_complete.py
 * Author : NikoJunttila <89527972+NikoJunttila@users.noreply.github.com>
-* 
+*
 *
 * Copyright (C) 2023 Centria University of Applied Sciences.
 * All rights reserved.
@@ -10,13 +10,12 @@
 * Unauthorized copying of this file, via any medium is strictly
 * prohibited.
 *
-****************************************************************"""
-
+*************************************************************"""
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QFileDialog, QListView,
     QMessageBox, QWidget, QLineEdit, QCheckBox,QListWidget, QTableWidgetItem)
-from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QMovie, QAction
+from PyQt6.QtGui import QStandardItemModel, QIcon, QStandardItem,QFont, QPixmap, QAction
 from PyQt6.QtCore import Qt, QSize, QEvent, QRunnable, pyqtSlot, QThreadPool,pyqtSignal, QThread
 from PyQt6.QtSvg import QSvgRenderer
 from pathlib import Path

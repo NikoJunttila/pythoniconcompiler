@@ -1,8 +1,8 @@
-"""****************************************************************
+"""*************************************************************
 *
 * File   : cmd_arg_copy.py
 * Author : NikoJunttila <89527972+NikoJunttila@users.noreply.github.com>
-* 
+*
 *
 * Copyright (C) 2023 Centria University of Applied Sciences.
 * All rights reserved.
@@ -10,8 +10,7 @@
 * Unauthorized copying of this file, via any medium is strictly
 * prohibited.
 *
-****************************************************************"""
-
+*************************************************************"""
 import shutil
 import os
 import glob
@@ -19,6 +18,12 @@ import sys
 from PIL import Image
 from PyQt6.QtSvg import QSvgRenderer
 import copy
+
+num_arguments = len(sys.argv)
+
+if num_arguments < 4:
+    print("Error: This script requires at least 3 arguments. [1]src location, [2] iconset location [3] destination")
+    sys.exit(1)
 
 src_code = sys.argv[1]
 icon_source = sys.argv[2]
