@@ -189,7 +189,10 @@ class LoadIconsWorker(QRunnable):
                 icon_resolution = get_icon_resolution(icon)
                 if icon_resolution == self.resolution_check and self.categories_check in icon:
                     item = QStandardItem()
-                    item.setIcon(QIcon(icon))
+                    original_pixmap = QPixmap(icon)
+                    scaled_pixmap = original_pixmap.scaled(QSize(40, 40))
+                    item.setIcon(QIcon(scaled_pixmap))
+                    #item.setIcon(QIcon(icon))
                     item.setData(icon)
                     file_name = os.path.basename(icon)
                     split_name = file_name.split(".")[0]
@@ -203,7 +206,10 @@ class LoadIconsWorker(QRunnable):
                 icon_resolution = get_icon_resolution(icon)
                 if icon_resolution == self.resolution_check:
                     item = QStandardItem()
-                    item.setIcon(QIcon(icon))
+                    original_pixmap = QPixmap(icon)
+                    scaled_pixmap = original_pixmap.scaled(QSize(40, 40))
+                    item.setIcon(QIcon(scaled_pixmap))
+                    #item.setIcon(QIcon(icon))
                     item.setData(icon)
                     file_name = os.path.basename(icon)
                     split_name = file_name.split(".")[0]
@@ -216,7 +222,10 @@ class LoadIconsWorker(QRunnable):
                     break
                 if self.categories_check in icon:
                     item = QStandardItem()
-                    item.setIcon(QIcon(icon))
+                    original_pixmap = QPixmap(icon)
+                    scaled_pixmap = original_pixmap.scaled(QSize(40, 40))
+                    item.setIcon(QIcon(scaled_pixmap))
+                    #item.setIcon(QIcon(icon))
                     item.setData(icon)
                     file_name = os.path.basename(icon)
                     split_name = file_name.split(".")[0]
@@ -228,7 +237,10 @@ class LoadIconsWorker(QRunnable):
                 if loop_count >= self.number:
                     break
                 item = QStandardItem()
-                item.setIcon(QIcon(icon))
+                original_pixmap = QPixmap(icon)
+                scaled_pixmap = original_pixmap.scaled(QSize(40, 40))
+                item.setIcon(QIcon(scaled_pixmap))
+                #item.setIcon(QIcon(icon))
                 item.setData(icon)
                 file_name = os.path.basename(icon)
                 split_name = file_name.split(".")[0]
@@ -873,7 +885,8 @@ class Ui_MainWindow(object):
             pixmap = QPixmap(data)
             self.image_loader.setPixmap(pixmap)
             item2 = QStandardItem()
-            item2.setIcon(QIcon(data))
+            scaled_pixmap = pixmap.scaled(QSize(40, 40))
+            item2.setIcon(QIcon(scaled_pixmap))
             item2.setData(data)
             self.listWidget_4.m_model.appendRow(item2)
             icon_resolution = get_icon_resolution(data)
